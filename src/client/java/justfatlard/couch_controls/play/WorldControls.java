@@ -48,6 +48,14 @@ public final class WorldControls {
 	 */
 	private static final float LOOK_THRESHOLD = 0.06f;
 
+	/**
+	 * Where a stick push starts counting as "that direction" for the boolean
+	 * record. Low on purpose: the deadzone has already thrown away noise, so
+	 * anything that reaches here is deliberate, and a walk that the server is
+	 * never told about is a walk it can refuse to let you sprint out of.
+	 */
+	private static final float DIGITAL_THRESHOLD = 0.1f;
+
 	/** Pad buttons that stand in for a vanilla key, resolved once options exist. */
 	private static final Map<KeyMapping, Integer> boundSlots = new IdentityHashMap<>();
 
@@ -136,13 +144,37 @@ public final class WorldControls {
 		// the length of a journey. It clears when the stick returns to centre
 		// (above), which is also how the player stops sprinting.
 		if (pad.justPressed(Binds.SPRINT)) sprintLatched = true;
+	}
 
-		Input keys = player.input.keyPresses;
-		player.input.keyPresses = new Input(
-			keys.forward() || y < -0.5f,
-			keys.backward() || y > 0.5f,
-			keys.left() || x < -0.5f,
-			keys.right() || x > 0.5f,
+	/**
+	 * Fold the pad into the boolean input record, called from the tail of
+	 * {@code KeyboardInput.tick()}.
+	 *
+	 * <p>The timing is the whole point, and doing it anywhere else silently
+	 * does nothing. This record is rebuilt from the keyboard on every game
+	 * tick, so a gamepad written into it earlier in the frame is overwritten
+	 * before a single consumer sees it. Writing it here, immediately after
+	 * vanilla computes it, is the only point where it survives.
+	 *
+	 * <p>It matters more than it looks. {@link #moveVector()} is what the
+	 * client walks by, so movement appears to work regardless — but this
+	 * record is what gets sent to the server, and what the tutorial reads.
+	 * Lose it and the server never learns the player is moving, sprinting or
+	 * sneaking, and the "Move with W, A, S and D" toast never clears because
+	 * as far as the game is concerned nobody ever moved.
+	 */
+	public static Input mergeKeyPresses(Input keys) {
+		if (!active) return keys;
+
+		Gamepad pad = Driver.gamepad();
+		float x = pad.leftX();
+		float y = pad.leftY();
+
+		return new Input(
+			keys.forward() || y <= -DIGITAL_THRESHOLD,
+			keys.backward() || y >= DIGITAL_THRESHOLD,
+			keys.left() || x <= -DIGITAL_THRESHOLD,
+			keys.right() || x >= DIGITAL_THRESHOLD,
 			keys.jump() || pad.isDown(Binds.JUMP),
 			keys.shift() || pad.isDown(Binds.SNEAK),
 			keys.sprint() || sprintLatched);
