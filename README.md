@@ -32,6 +32,8 @@ Pandorical screens build their UI from server-sent component definitions that ar
 
 Regions are geometry only, with no activate hook, and that is the point: one mechanism drives vanilla slots, vanilla widgets and Pandorical components alike.
 
+The other half is keybinds. Suite mods declare their own keys through Pandorical's pooled slots rather than shipping client code, so those keys are ordinary `KeyMapping`s that nothing on a pad reaches by default. The d-pad drives pool slots 1-4, which is how poopsmith's poop key (slot 1, `G` on a keyboard) becomes d-pad down. The press travels to the server down Pandorical's existing path; there is no extra protocol.
+
 Because Pandorical is the platform every suite screen is built on, this covers the suite by construction — and `PandoricalContainerScreen` extends the vanilla container screen, so its item slots were already covered by the vanilla path.
 
 The integration is compiled against the real interface, **not** reflection. The suite already knows what string-keyed reflection costs (see the village web's `integration/` packages, which fail silently when a class is renamed); a compile-checked interface turns that same drift into a build error. Runtime isolation is by class-loading: the flag lives in `Targets`, so a client without Pandorical never loads the class that names it.
@@ -57,6 +59,7 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | Right stick click | Swap hands |
 | Start | Pause menu (press again to close) |
 | Back | Player list |
+| D-pad | Pandorical keybinds 1-4 (down = slot 1, poopsmith's poop key) |
 
 ### In menus
 

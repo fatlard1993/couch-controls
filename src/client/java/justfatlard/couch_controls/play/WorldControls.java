@@ -77,8 +77,17 @@ public final class WorldControls {
 	 */
 	private static boolean active;
 
+	/**
+	 * Guarded here, in a class that always loads, so a client without Pandorical
+	 * never reaches PandoricalKeybinds at all. Same shape as Targets' guard.
+	 */
+	private static final boolean PANDORICAL_LOADED =
+		net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("pandorical");
+
 	private static void bind(Options options) {
 		if (!boundSlots.isEmpty()) return;
+
+		if (PANDORICAL_LOADED) PandoricalKeybinds.bind(boundSlots);
 
 		boundSlots.put(options.keyJump, Binds.JUMP);
 		boundSlots.put(options.keyShift, Binds.SNEAK);

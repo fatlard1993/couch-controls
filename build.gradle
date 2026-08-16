@@ -2,6 +2,13 @@ plugins {
     id 'net.fabricmc.fabric-loom' version '1.17.17'
 }
 
+// Pandorical splits its environment source sets, so its client-only classes are
+// not on the classpath a plain project dependency provides. Resolved here rather
+// than inside dependencies{}, where project(...) builds a dependency instead of
+// returning the project.
+evaluationDependsOn(':pandorical')
+def pandoricalClientClasses = project(':pandorical').sourceSets.client.output
+
 version = project.mod_version
 group = project.maven_group
 
@@ -27,10 +34,18 @@ dependencies {
     // Fabric API
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // Pandorical — for NavigableScreen only, so declarative screens can say
-    // where their buttons are. A soft dependency: this mod runs fine without
-    // it (see PandoricalTargets), so it is NOT in fabric.mod.json's depends.
+    // Pandorical — NavigableScreen, so declarative screens can say where their
+    // buttons are, and KeybindManager, so a pad button can drive a server-declared
+    // pooled keybind. A soft dependency: this mod runs fine without it (see
+    // PandoricalTargets and PandoricalKeybinds), so it is NOT in fabric.mod.json's
+    // depends.
+    //
+    // Two entries because Pandorical splits its environment source sets:
+    // NavigableScreen is common API and arrives with the project, while
+    // KeybindManager is client-only and has to be named through the client
+    // source set's output.
     clientImplementation(project(':pandorical'))
+    clientImplementation(pandoricalClientClasses)
 }
 
 processClientResources {
