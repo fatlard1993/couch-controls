@@ -101,6 +101,16 @@ public final class WorldControls {
 			}
 		}
 
+		// Pause is the one action with no KeyMapping to borrow: vanilla drives it
+		// straight off the escape key rather than through options, so it cannot ride
+		// the bound-slot map above and calls the game directly instead. Returning
+		// here keeps the same frame from also steering a player who just walked away
+		// from the controls.
+		if (pad.justPressed(Binds.PAUSE)) {
+			client.pauseGame(false);
+			return;
+		}
+
 		LocalPlayer player = client.player;
 		if (player == null) {
 			padMove = null;

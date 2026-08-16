@@ -55,7 +55,7 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | Shoulders | Cycle hotbar |
 | Left stick click | Sprint (latches until the stick recentres) |
 | Right stick click | Swap hands |
-| Start | Pause |
+| Start | Pause menu (press again to close) |
 | Back | Player list |
 
 ### In menus
@@ -68,6 +68,7 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | West (X) | Right click |
 | North (Y) | Shift-click (quick move) |
 | East (B) | Close |
+| Start | Close |
 
 Bindings are hardcoded for now. A rebinding UI is a real want, but it is a screen you would have to navigate before you can navigate screens, and the layout has to be usable before any of that exists.
 

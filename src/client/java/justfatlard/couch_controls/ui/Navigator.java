@@ -195,7 +195,10 @@ public final class Navigator {
 		if (pad.justPressed(Binds.QUICK_MOVE)) {
 			click(screen, InputConstants.MOUSE_BUTTON_LEFT, SHIFT_MODIFIER);
 		}
-		if (pad.justPressed(Binds.CLOSE)) {
+		// Start closes as well as opens, so it toggles the pause menu the way a
+		// console game does. Without this the button that paused you does nothing to
+		// get you back, and a pad-only player has to reach for the keyboard.
+		if (pad.justPressed(Binds.CLOSE) || pad.justPressed(Binds.PAUSE)) {
 			screen.onClose();
 		}
 	}
