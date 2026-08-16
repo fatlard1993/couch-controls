@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "justfatlard.couch_controls.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"AbstractContainerScreenAccessor",
+		"KeyMappingMixin",
+		"LocalPlayerMixin",
+		"MinecraftMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

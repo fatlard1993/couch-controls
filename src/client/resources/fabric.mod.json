@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "couch-controls",
+	"version": "${version}",
+	"name": "Couch Controls",
+	"description": "Native gamepad support: analog movement, stick camera, and menu navigation that snaps to real slots and buttons instead of pushing a pointer around.",
+	"authors": [
+		"fatlard1993"
+	],
+	"contact": {
+		"homepage": "https://github.com/fatlard1993/couch-controls",
+		"sources": "https://github.com/fatlard1993/couch-controls",
+		"issues": "https://github.com/fatlard1993/couch-controls/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/couch-controls/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"justfatlard.couch_controls.CouchControlsClient"
+		]
+	},
+	"mixins": [
+		"couch-controls.client.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.0",
+		"minecraft": ">=26.3-alpha.1",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"pandorical": "*"
+	}
+}
