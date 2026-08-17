@@ -72,6 +72,7 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | North (Y) | Shift-click (quick move) |
 | East (B) | Close |
 | Start | Close |
+| Shoulders | Scroll (bundle contents, long lists) |
 
 Bindings are hardcoded for now. A rebinding UI is a real want, but it is a screen you would have to navigate before you can navigate screens, and the layout has to be usable before any of that exists.
 

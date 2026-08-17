@@ -201,6 +201,17 @@ public final class Navigator {
 		if (pad.justPressed(Binds.CLOSE) || pad.justPressed(Binds.PAUSE)) {
 			screen.onClose();
 		}
+
+		// The shoulders are the wheel. Menus have a whole class of interaction that
+		// is scroll and nothing else: picking which item a bundle hands you next is
+		// driven purely by BundleMouseActions.onMouseScrolled, so without this a pad
+		// cannot reach inside a bundle at all. Scrollable lists get it for free.
+		if (pad.justPressed(Binds.SCROLL_UP)) {
+			screen.mouseScrolled(cursorX, cursorY, 0.0, 1.0);
+		}
+		if (pad.justPressed(Binds.SCROLL_DOWN)) {
+			screen.mouseScrolled(cursorX, cursorY, 0.0, -1.0);
+		}
 	}
 
 	/**

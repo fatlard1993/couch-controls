@@ -55,6 +55,14 @@ public final class Binds {
 
 	public static final int CLOSE = SDLGamepad.SDL_GAMEPAD_BUTTON_EAST;
 
+	/**
+	 * The shoulders cycle the hotbar in the world and stand in for the wheel in
+	 * menus. Nothing else needs them there, and some menu interactions are scroll
+	 * and nothing else.
+	 */
+	public static final int SCROLL_UP = SDLGamepad.SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+	public static final int SCROLL_DOWN = SDLGamepad.SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
+
 	public static final int NAV_UP = SDLGamepad.SDL_GAMEPAD_BUTTON_DPAD_UP;
 	public static final int NAV_DOWN = SDLGamepad.SDL_GAMEPAD_BUTTON_DPAD_DOWN;
 	public static final int NAV_LEFT = SDLGamepad.SDL_GAMEPAD_BUTTON_DPAD_LEFT;
