@@ -7,6 +7,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.phys.Vec2;
 
@@ -68,6 +69,12 @@ public final class WorldControls {
 
 	private static Vec2 padMove;
 	private static boolean sprintLatched;
+
+	/**
+	 * Fraction of a steering press carried over between ticks. See
+	 * {@link #steerPulse(float)}.
+	 */
+	private static float steerPhase;
 
 	/**
 	 * False whenever the world is not what the pad is pointed at — a screen is
@@ -189,14 +196,55 @@ public final class WorldControls {
 		float x = pad.leftX();
 		float y = pad.leftY();
 
+		boolean left = x <= -DIGITAL_THRESHOLD;
+		boolean right = x >= DIGITAL_THRESHOLD;
+
+		if (isSteeringBoat()) {
+			boolean pulse = steerPulse(Math.abs(x));
+			left = left && pulse;
+			right = right && pulse;
+		} else {
+			steerPhase = 0f;
+		}
+
 		return new Input(
 			keys.forward() || y <= -DIGITAL_THRESHOLD,
 			keys.backward() || y >= DIGITAL_THRESHOLD,
-			keys.left() || x <= -DIGITAL_THRESHOLD,
-			keys.right() || x >= DIGITAL_THRESHOLD,
+			keys.left() || left,
+			keys.right() || right,
 			keys.jump() || pad.isDown(Binds.JUMP),
 			keys.shift() || pad.isDown(Binds.SNEAK),
 			keys.sprint() || sprintLatched);
+	}
+
+	private static boolean isSteeringBoat() {
+		LocalPlayer player = Minecraft.getInstance().player;
+		return player != null && player.getControlledVehicle() instanceof AbstractBoat;
+	}
+
+	/**
+	 * Turn a stick magnitude into a press pattern, for the one vehicle that reads
+	 * nothing else.
+	 *
+	 * <p>A boat steers by adding a fixed step to its own rotation on every tick
+	 * the left or right boolean is held. There is no half press, so a stick an
+	 * eighth of the way over turns exactly as hard as one pinned to the edge, and
+	 * the only available turn is the sharpest one. On foot this never shows,
+	 * because {@link #moveVector()} carries the magnitude down a separate path;
+	 * a boat has no such path.
+	 *
+	 * <p>So the magnitude becomes the fraction of ticks the press is held: a
+	 * third of the way over presses on a third of the ticks. The boat's rotation
+	 * carries momentum between ticks, which smooths the gaps back into a turn
+	 * that is simply slower rather than one that stutters. Squared first, for the
+	 * same reason the camera is: most of the travel should buy fine control.
+	 */
+	private static boolean steerPulse(float magnitude) {
+		steerPhase += magnitude * magnitude;
+		if (steerPhase < 1f) return false;
+
+		steerPhase -= 1f;
+		return true;
 	}
 
 	private static void applyHotbar(Gamepad pad, LocalPlayer player) {
@@ -252,6 +300,7 @@ public final class WorldControls {
 		active = false;
 		padMove = null;
 		sprintLatched = false;
+		steerPhase = 0f;
 		pendingClicks.clear();
 	}
 }
