@@ -24,10 +24,10 @@
 		"couch-controls.client.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.18.0",
-		"minecraft": ">=26.3-alpha.1",
+		"fabricloader": ">=${loaderVersion}",
+		"minecraft": "${minecraftDependency}",
 		"java": ">=25",
-		"fabric-api": "*"
+		"fabric-api": "${fabricApiVersion}"
 	},
 	"suggests": {
 		"pandorical": "*"
