@@ -26,6 +26,11 @@ import java.util.List;
  * and every screen's existing mouse handling all keep working, because from
  * the game's side nothing unusual happened. The right stick still moves the
  * pointer freely for anything this cannot enumerate.
+ *
+ * <p>The mouse is never held hostage. The pointer is only warped on a frame
+ * the pad moved it, and when the mouse has moved on its own since the last
+ * warp, the cursor follows the mouse instead: whichever hand moved last has
+ * the pointer, and the pad's next step starts from wherever it is.
  */
 public final class Navigator {
 	private Navigator() {}
@@ -50,16 +55,39 @@ public final class Navigator {
 	/** SDL's left-shift bit. {@code MouseButtonEvent.hasShiftDown()} tests {@code modifiers & 3}. */
 	private static final int SHIFT_MODIFIER = 1;
 
+	/**
+	 * A warp's echo comes back through the event pump a frame later, so for
+	 * this many frames a pointer that is not yet where it was sent is the
+	 * warp still landing, not the mouse moving. Past it, the pump has had its
+	 * turn and any difference is the mouse's.
+	 */
+	private static final int WARP_SETTLE_FRAMES = 3;
+
+	/** The pointer counts as moved by the mouse past this, in window pixels; under it is rounding. */
+	private static final double MOUSE_MOVED_PIXELS = 1.5;
+
 	private static double cursorX;
 	private static double cursorY;
 	private static float repeatCooldown;
 	private static boolean repeating;
+	/** The screen the cursor was last placed for; a new screen starts from the mouse. */
+	private static Screen current;
+	/** The screen the pad has seated itself on; null until its first step there. */
 	private static Screen seatedOn;
+	/** Whether the pad moved the cursor this frame, and so the pointer should follow it. */
+	private static boolean moved;
+	/** Where the pointer was last sent, in window pixels, and how long ago. */
+	private static double warpedX;
+	private static double warpedY;
+	private static int framesSinceWarp = Integer.MAX_VALUE;
 
 	public static void reset() {
+		current = null;
 		seatedOn = null;
 		repeatCooldown = 0f;
 		repeating = false;
+		moved = false;
+		framesSinceWarp = Integer.MAX_VALUE;
 	}
 
 	public static void onFrame(Gamepad pad, Minecraft client, float frameSeconds) {
@@ -68,26 +96,63 @@ public final class Navigator {
 
 		List<NavTarget> targets = Targets.collect(screen);
 
-		if (seatedOn != screen) {
-			seat(client, screen, targets);
+		if (current != screen) {
+			// A new screen: the cursor is wherever the mouse is, and stays the
+			// mouse's until the pad asks for it. Seating on every open moved the
+			// pointer out from under a mouse user whenever a pad was plugged in.
+			current = screen;
+			seatedOn = null;
+			repeatCooldown = 0f;
+			repeating = false;
+			framesSinceWarp = Integer.MAX_VALUE;
+			follow(client, true);
+		} else {
+			follow(client, false);
 		}
 
 		moveFreely(pad, client, frameSeconds);
-		step(pad, targets, frameSeconds);
+		step(pad, client, screen, targets, frameSeconds);
 		press(pad, screen);
 
-		warp(client);
+		if (moved) warp(client);
+		moved = false;
 	}
 
 	/**
-	 * Put the cursor somewhere sensible when a screen opens, rather than
-	 * wherever the mouse happened to be left. Nearest target to the middle,
-	 * since that is usually the container itself rather than a stray corner
-	 * button.
+	 * Let the mouse have the cursor when it has moved since the pad last put
+	 * the pointer somewhere. Nothing is warped here: this is the pad reading
+	 * where the mouse went, so its next step starts from there.
+	 */
+	private static void follow(Minecraft client, boolean always) {
+		double mouseX = client.mouseHandler.xpos();
+		double mouseY = client.mouseHandler.ypos();
+		if (!always) {
+			if (framesSinceWarp < WARP_SETTLE_FRAMES) {
+				framesSinceWarp++;
+				boolean landed = Math.abs(mouseX - warpedX) <= MOUSE_MOVED_PIXELS
+					&& Math.abs(mouseY - warpedY) <= MOUSE_MOVED_PIXELS;
+				if (landed) framesSinceWarp = Integer.MAX_VALUE;
+				else return;
+			}
+			if (Math.abs(mouseX - warpedX) <= MOUSE_MOVED_PIXELS && Math.abs(mouseY - warpedY) <= MOUSE_MOVED_PIXELS) return;
+		}
+
+		Window window = client.getWindow();
+		if (window.getScreenWidth() == 0 || window.getScreenHeight() == 0) return;
+		cursorX = mouseX * window.getGuiScaledWidth() / window.getScreenWidth();
+		cursorY = mouseY * window.getGuiScaledHeight() / window.getScreenHeight();
+		warpedX = mouseX;
+		warpedY = mouseY;
+	}
+
+	/**
+	 * Put the cursor somewhere sensible the first time the pad steps on a
+	 * screen, rather than wherever the mouse happened to be left. Nearest
+	 * target to the middle, since that is usually the container itself rather
+	 * than a stray corner button.
 	 */
 	private static void seat(Minecraft client, Screen screen, List<NavTarget> targets) {
 		seatedOn = screen;
-		repeatCooldown = 0f;
 
 		Window window = client.getWindow();
 		cursorX = window.getGuiScaledWidth() / 2.0;
@@ -107,6 +172,7 @@ public final class Navigator {
 			cursorX = nearest.centerX();
 			cursorY = nearest.centerY();
 		}
+		moved = true;
 	}
 
 	/**
@@ -123,9 +189,10 @@ public final class Navigator {
 		Window window = client.getWindow();
 		cursorX = Math.clamp(cursorX + x * FREE_CURSOR_PIXELS_PER_SECOND * frameSeconds, 0, window.getGuiScaledWidth());
 		cursorY = Math.clamp(cursorY + y * FREE_CURSOR_PIXELS_PER_SECOND * frameSeconds, 0, window.getGuiScaledHeight());
+		moved = true;
 	}
 
-	private static void step(Gamepad pad, List<NavTarget> targets, float frameSeconds) {
+	private static void step(Gamepad pad, Minecraft client, Screen screen, List<NavTarget> targets, float frameSeconds) {
 		int dx = 0;
 		int dy = 0;
 
@@ -152,10 +219,18 @@ public final class Navigator {
 		repeatCooldown = repeating ? REPEAT_INTERVAL_SECONDS : REPEAT_DELAY_SECONDS;
 		repeating = true;
 
+		// The first push on a screen seats the cursor and is spent on that: a
+		// seat-and-step would land one past the slot the player was shown.
+		if (seatedOn != screen) {
+			seat(client, screen, targets);
+			return;
+		}
+
 		NavTarget next = pick(targets, dx, dy);
 		if (next != null) {
 			cursorX = next.centerX();
 			cursorY = next.centerY();
+			moved = true;
 		}
 	}
 
@@ -234,7 +309,9 @@ public final class Navigator {
 	 * <p>This is what makes hover and tooltips work without reimplementing
 	 * them: the warp produces an ordinary motion event, the game updates its
 	 * own pointer state from it, and every screen highlights whatever is
-	 * under the cursor exactly as it would for a mouse.
+	 * under the cursor exactly as it would for a mouse. Only on a frame the
+	 * pad moved the cursor; every frame was the mouse being dragged back to
+	 * wherever the pad had left it.
 	 */
 	private static void warp(Minecraft client) {
 		Window window = client.getWindow();
@@ -244,6 +321,9 @@ public final class Navigator {
 		float windowY = (float) (cursorY * window.getScreenHeight() / window.getGuiScaledHeight());
 
 		SDLMouse.SDL_WarpMouseInWindow(window.handle(), windowX, windowY);
+		warpedX = windowX;
+		warpedY = windowY;
+		framesSinceWarp = 0;
 	}
 
 	private static double distanceSquared(NavTarget target, double x, double y) {

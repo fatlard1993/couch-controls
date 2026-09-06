@@ -68,6 +68,22 @@ public final class WorldControls {
 	private static final Map<KeyMapping, Integer> pendingClicks = new IdentityHashMap<>();
 
 	private static Vec2 padMove;
+
+	/**
+	 * Reeling: the fishing fight is driven by right-clicks, every click one kick upward, so a
+	 * mouse plays it by tapping at a rate. A trigger is a poor thing to tap at four a second and
+	 * a good thing to squeeze, so while a bobber is out the use trigger becomes a cadence: a tap
+	 * is still one click, and a hold clicks on its own, faster the harder it is pulled. Between
+	 * these two rates, which bracket what the fight asks for.
+	 */
+	private static final float REEL_MIN_CLICKS_PER_SECOND = 2f;
+	private static final float REEL_MAX_CLICKS_PER_SECOND = 8f;
+	private static boolean rodInHand;
+	private static boolean reeling;
+	/** The squeeze that cast the line is still on when the bobber appears; it must let go before it counts. */
+	private static boolean reelArmed;
+	private static boolean reelHeld;
+	private static float reelDue;
 	private static boolean sprintLatched;
 
 	/**
@@ -111,11 +127,25 @@ public final class WorldControls {
 		active = true;
 		bind(client.options);
 
+		rodInHand = client.player != null
+			&& client.player.getMainHandItem().getItem() instanceof net.minecraft.world.item.FishingRodItem;
+		boolean bobberOut = rodInHand && client.player.fishing != null;
+		if (bobberOut && !reeling) {
+			// The line just went out. The finger that cast it is still down, and that press
+			// has been spent: nothing more until it lifts.
+			reelArmed = pad.leftTrigger() < Gamepad.triggerThreshold();
+			reelHeld = false;
+		}
+		reeling = bobberOut;
+
 		for (Map.Entry<KeyMapping, Integer> entry : boundSlots.entrySet()) {
+			if (reeling && entry.getValue() == Binds.USE) continue;
 			if (pad.justPressed(entry.getValue())) {
 				pendingClicks.merge(entry.getKey(), 1, Integer::sum);
 			}
 		}
+		if (reeling) applyReel(pad, client.options, frameSeconds);
+		else reelHeld = false;
 
 		// Pause is the one action with no KeyMapping to borrow: vanilla drives it
 		// straight off the escape key rather than through options, so it cannot ride
@@ -136,6 +166,31 @@ public final class WorldControls {
 		applyLook(pad, player, frameSeconds);
 		applyMovement(pad, player);
 		applyHotbar(pad, player);
+	}
+
+	/** The use trigger as a click cadence: one on the squeeze, then a run whose rate follows the pull. */
+	private static void applyReel(Gamepad pad, Options options, float frameSeconds) {
+		float depth = pad.leftTrigger();
+		float threshold = Gamepad.triggerThreshold();
+		if (depth < threshold) {
+			reelArmed = true;
+			reelHeld = false;
+			return;
+		}
+		if (!reelArmed) return;
+		if (!reelHeld) {
+			reelHeld = true;
+			reelDue = 0f;
+			pendingClicks.merge(options.keyUse, 1, Integer::sum);
+			return;
+		}
+		float pull = Math.min(1f, (depth - threshold) / (1f - threshold));
+		float rate = REEL_MIN_CLICKS_PER_SECOND + pull * (REEL_MAX_CLICKS_PER_SECOND - REEL_MIN_CLICKS_PER_SECOND);
+		reelDue += frameSeconds * rate;
+		while (reelDue >= 1f) {
+			reelDue -= 1f;
+			pendingClicks.merge(options.keyUse, 1, Integer::sum);
+		}
 	}
 
 	private static void applyLook(Gamepad pad, LocalPlayer player, float frameSeconds) {
@@ -275,6 +330,9 @@ public final class WorldControls {
 		if (!active) return false;
 
 		Integer slot = boundSlots.get(mapping);
+		// A rod is used by the click, never by the hold: vanilla's repeat of a held use would
+		// cast and retrieve by turns, and while reeling would pile onto the cadence.
+		if (rodInHand && slot != null && slot == Binds.USE) return false;
 		return slot != null && Driver.gamepad().isDown(slot);
 	}
 
@@ -301,6 +359,9 @@ public final class WorldControls {
 		padMove = null;
 		sprintLatched = false;
 		steerPhase = 0f;
+		rodInHand = false;
+		reeling = false;
+		reelHeld = false;
 		pendingClicks.clear();
 	}
 }

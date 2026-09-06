@@ -24,6 +24,8 @@ Gamepad events are switched **off** and state is polled with `SDL_UpdateGamepads
 
 **Navigation moves the real pointer.** It does not draw a highlight of its own. The cursor is warped onto the chosen target, so hover states, tooltips, item counts and every screen's existing mouse handling keep working: from the game's side, nothing unusual happened. The right stick still moves the pointer freely for anything that cannot be enumerated — scroll regions, maps, screens that draw their own controls.
 
+**The mouse is never held hostage.** The pointer is only moved on a frame the pad moved it, and the pad's cursor follows the mouse whenever the mouse has moved since. A screen opens with the pointer where the mouse left it; the pad's first push on the stick seats it on the nearest slot to the middle, and from then on whichever hand moved last has it.
+
 ## Pandorical
 
 A **soft** dependency. Everything above is vanilla, and this mod runs on any client.
@@ -38,6 +40,22 @@ Because Pandorical is the platform every suite screen is built on, this covers t
 
 The integration is compiled against the real interface, **not** reflection. The suite already knows what string-keyed reflection costs (see the village web's `integration/` packages, which fail silently when a class is renamed); a compile-checked interface turns that same drift into a build error. Runtime isolation is by class-loading: the flag lives in `Targets`, so a client without Pandorical never loads the class that names it.
 
+## Which pad, when there are two
+
+A controller left plugged in to charge is still a controller as far as SDL is concerned, and it may
+well be the first one listed. Binding blind to that one looks *exactly* like working - the log says
+a controller connected, and nothing responds.
+
+So the pad in charge is the pad being used. Every connected pad is held open; the first one found
+takes control at startup, since nobody is touching anything yet, and keeps it for as long as it is
+being used. Once it has been idle a couple of seconds, any other pad gets it by asking: a button, a
+trigger, or a stick pushed further than a resting stick ever sits. Buttons and triggers are taken at
+face value because they cannot drift; the sticks are held to a higher bar than the deadzone so a
+worn pad on a shelf can never take the game away from the one in somebody's hands.
+
+Handing a second pad to somebody else and having them press A is therefore all it takes to switch,
+and the log names the pad it is listening to and how many it can see.
+
 ## Layout
 
 Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this comes out right on an Xbox pad, a PlayStation pad, and the 8BitDo alike.
@@ -50,6 +68,12 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | Right stick | Look |
 | Right trigger | Attack / break |
 | Left trigger | Use / place |
+
+**Reeling a fish** is the one place the left trigger is read as more than a button. The fishing
+fight (Minedew Fishing) is driven by right-clicks, one kick upward per click, and a mouse plays it by
+tapping at a rate. While a bobber is out, a tap of the trigger is still one click, and a hold clicks
+on its own: two a second at the lightest squeeze, eight fully pulled. Pull harder to rise, ease off to
+sink, let go to drop.
 | South (A) | Jump |
 | East (B) | Sneak |
 | West (X) | Drop item |
@@ -76,20 +100,6 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 
 Bindings are hardcoded for now. A rebinding UI is a real want, but it is a screen you would have to navigate before you can navigate screens, and the layout has to be usable before any of that exists.
 
-## Installation
-
-Drop the jar in your client's `mods` folder alongside its declared dependencies (see `fabric.mod.json`). No server-side installation needed. Version targets live in `gradle.properties` (Minecraft, loader, Fabric API) and `fabric.mod.json` (Java).
-
-## Building
-
-Couch Controls compiles against Pandorical's live source for `NavigableScreen`, not a published artifact: `settings.gradle` includes `../pandorical`. Check both out side by side or the build fails before it starts. Pandorical is still only a *runtime* soft dependency; the compile-time one is what makes the integration drift into a build error instead of a silent no-op.
-
-```bash
-./gradlew build
-```
-
-The Minecraft dependency is `>=26.3-alpha.1`, not the suite's usual `>=26.2`: SDL input is verified present on the 26.3 snapshots and nowhere earlier. **Write it as `alpha`, not `snapshot`** — Fabric normalizes `26.3-snapshot-8` to the semver prerelease `26.3-alpha.8`, so a predicate written against the Mojang spelling silently matches nothing and the mod refuses to load on the exact version it targets. The build stays green either way; only a launch catches it.
-
 ## Known gaps
 
 - **Text entry.** Chat, signs, anvils and command blocks still need a keyboard. Landing on a text field focuses it; typing into it is a separate problem that wants an on-screen keyboard.
@@ -97,6 +107,10 @@ The Minecraft dependency is `>=26.3-alpha.1`, not the suite's usual `>=26.2`: SD
 - **No dead zone, sensitivity or binding configuration.** All tuning constants are in the source, each with a note on what moving it costs.
 - **Creative inventory tabs** are widgets and so are reachable, but the tab strip navigates awkwardly.
 - **First pad only.** `SDL_GetGamepads` returns a list and this opens index 0.
+
+## Development
+
+Installing and building are in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## License
 
