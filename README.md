@@ -93,7 +93,7 @@ sink, let go to drop.
 | Right stick | Move the pointer freely |
 | South (A) | Click |
 | West (X) | Right click |
-| North (Y) | Shift-click (quick move) |
+| North (Y) | Shift-click (quick move); closes your own inventory |
 | East (B) | Close |
 | Start | Close |
 | Shoulders | Scroll (bundle contents, long lists) |

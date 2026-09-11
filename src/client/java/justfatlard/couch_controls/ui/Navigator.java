@@ -6,6 +6,8 @@ import justfatlard.couch_controls.input.Binds;
 import justfatlard.couch_controls.input.Gamepad;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 import org.lwjgl.sdl.SDLMouse;
@@ -274,7 +276,8 @@ public final class Navigator {
 			click(screen, InputConstants.MOUSE_BUTTON_RIGHT, 0);
 		}
 		if (pad.justPressed(Binds.QUICK_MOVE)) {
-			click(screen, InputConstants.MOUSE_BUTTON_LEFT, SHIFT_MODIFIER);
+			if (openedByInventoryKey(screen)) screen.onClose();
+			else click(screen, InputConstants.MOUSE_BUTTON_LEFT, SHIFT_MODIFIER);
 		}
 		// Start closes as well as opens, so it toggles the pause menu the way a
 		// console game does. Without this the button that paused you does nothing to
@@ -289,6 +292,10 @@ public final class Navigator {
 		// cannot reach inside a bundle at all. Scrollable lists get it for free.
 		if (pad.justPressed(Binds.SCROLL_UP)) scroll(screen, 1.0);
 		if (pad.justPressed(Binds.SCROLL_DOWN)) scroll(screen, -1.0);
+	}
+
+	private static boolean openedByInventoryKey(Screen screen) {
+		return screen instanceof InventoryScreen || screen instanceof CreativeModeInventoryScreen;
 	}
 
 	private static final boolean NAVIGATION_SCROLL =
