@@ -8,17 +8,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 /**
- * Analog movement: the one thing a key cannot express.
- *
- * <p>{@code applyInput} funnels the whole movement vector through
- * {@code modifyInput} before splitting it into the player's strafe and
- * forward fields, which makes this the single point where a stick's actual
- * deflection can replace the keyboard's cardinal 1.0. Everything after it —
- * sneak scaling, slowdowns, the square-movement correction — still applies,
- * because they all live downstream of here.
- *
- * <p>Returning the original when no stick is held is what lets keyboard and
- * pad coexist: the mod is invisible until the stick actually moves.
+ * Fallback for a player whose input is not a {@code KeyboardInput}, which
+ * {@code KeyboardInputMixin} never reaches. On the ordinary path the vector
+ * arriving here is already the pad's.
  */
 @Mixin(LocalPlayer.class)
 public class LocalPlayerMixin {

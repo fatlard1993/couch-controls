@@ -20,7 +20,7 @@ Gamepad events are switched **off** and state is polled with `SDL_UpdateGamepads
 
 **Actions go through vanilla key mappings.** A bound button makes the vanilla `KeyMapping` for that action report itself pressed, rather than calling game methods directly. Block-breaking progress and cooldown, bow and food charge-up, sneak's edge cases — all of it then runs down the ordinary key path, unmodified. None of it has to be re-derived and none of it can drift out of sync with vanilla, because it *is* vanilla.
 
-**Movement is the exception**, because a key is binary and a stick is not. `LocalPlayer.applyInput` funnels the whole movement vector through `modifyInput` before splitting it into strafe and forward, which makes that the one place a stick's real deflection can replace the keyboard's cardinal 1.0. Everything downstream — sneak scaling, slowdowns, the square-movement correction — still applies.
+**Movement is the exception**, because a key is binary and a stick is not. Each tick, right after vanilla builds `ClientInput.moveVector` from the keys, the stick's real deflection replaces the keyboard's cardinal 1.0 there. Walking, sprint's start, and everything downstream of it (sneak scaling, slowdowns, the square-movement correction) then read the analog value.
 
 **Navigation moves the real pointer.** It does not draw a highlight of its own. The cursor is warped onto the chosen target, so hover states, tooltips, item counts and every screen's existing mouse handling keep working: from the game's side, nothing unusual happened. The right stick still moves the pointer freely for anything that cannot be enumerated — scroll regions, maps, screens that draw their own controls.
 
