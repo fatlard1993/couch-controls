@@ -9,6 +9,8 @@ import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.player.Input;
+import net.minecraft.world.item.FishingRodItem;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec2;
 
 import java.util.IdentityHashMap;
@@ -145,8 +147,7 @@ public final class WorldControls {
 		sneakToggles = client.options.toggleCrouch().get();
 		if (sneakToggles && pad.justPressed(Binds.SNEAK)) client.options.keyShift.setDown(true);
 
-		rodInHand = client.player != null
-			&& client.player.getMainHandItem().getItem() instanceof net.minecraft.world.item.FishingRodItem;
+		rodInHand = client.player != null && usesRod(client.player);
 		boolean bobberOut = rodInHand && client.player.fishing != null;
 		if (bobberOut && !reeling) {
 			// The line just went out. The finger that cast it is still down, and that press
@@ -184,6 +185,13 @@ public final class WorldControls {
 		applyLook(pad, player, frameSeconds);
 		applyMovement(pad, player);
 		applyHotbar(pad, player);
+	}
+
+	/** Whether use reaches a rod: in the main hand, or in the offhand behind an empty main hand. */
+	private static boolean usesRod(LocalPlayer player) {
+		ItemStack main = player.getMainHandItem();
+		return main.getItem() instanceof FishingRodItem
+			|| (main.isEmpty() && player.getOffhandItem().getItem() instanceof FishingRodItem);
 	}
 
 	/** The use trigger as a click cadence: one on the squeeze, then a run whose rate follows the pull. */
