@@ -281,12 +281,17 @@ public final class Navigator {
 		// is scroll and nothing else: picking which item a bundle hands you next is
 		// driven purely by BundleMouseActions.onMouseScrolled, so without this a pad
 		// cannot reach inside a bundle at all. Scrollable lists get it for free.
-		if (pad.justPressed(Binds.SCROLL_UP)) {
-			screen.mouseScrolled(cursorX, cursorY, 0.0, 1.0);
-		}
-		if (pad.justPressed(Binds.SCROLL_DOWN)) {
-			screen.mouseScrolled(cursorX, cursorY, 0.0, -1.0);
-		}
+		if (pad.justPressed(Binds.SCROLL_UP)) scroll(screen, 1.0);
+		if (pad.justPressed(Binds.SCROLL_DOWN)) scroll(screen, -1.0);
+	}
+
+	private static final boolean NAVIGATION_SCROLL =
+		net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("pandorical") && PandoricalScroll.linked();
+
+	private static void scroll(Screen screen, double notches) {
+		Runnable send = () -> screen.mouseScrolled(cursorX, cursorY, 0.0, notches);
+		if (NAVIGATION_SCROLL) PandoricalScroll.around(send);
+		else send.run();
 	}
 
 	/**
