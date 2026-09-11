@@ -63,6 +63,7 @@ public final class Driver {
 			return;
 		}
 		wasConnected = true;
+		if (GAMEPAD.handedOver()) WorldControls.release();
 
 		if (client.gui.screen() == null) {
 			Navigator.reset();

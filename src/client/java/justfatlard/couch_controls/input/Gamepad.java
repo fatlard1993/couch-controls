@@ -71,6 +71,8 @@ public final class Gamepad {
 	 */
 	private final List<Long> open = new ArrayList<>();
 	private long handle;
+	/** True for the one poll where {@link #handle} changed; that pad's held buttons press nothing. */
+	private boolean handedOver;
 	private long lastScanMs;
 	private long lastActivityMs;
 
@@ -100,8 +102,10 @@ public final class Gamepad {
 
 		SDLGamepad.SDL_UpdateGamepads();
 
+		long driving = handle;
 		rescan(nowMs);
 		chooseActive(nowMs);
+		handedOver = handle != 0L && handle != driving;
 
 		System.arraycopy(down, 0, wasDown, 0, SLOT_COUNT);
 
@@ -135,6 +139,8 @@ public final class Gamepad {
 		float rightScale = deadzoneScale(rawRightX, rawRightY);
 		rightX = rawRightX * rightScale;
 		rightY = rawRightY * rightScale;
+
+		if (handedOver) System.arraycopy(down, 0, wasDown, 0, SLOT_COUNT);
 	}
 
 	/**
@@ -306,6 +312,10 @@ public final class Gamepad {
 
 	public boolean isConnected() {
 		return handle != 0L;
+	}
+
+	public boolean handedOver() {
+		return handedOver;
 	}
 
 	public boolean isDown(int slot) {

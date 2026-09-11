@@ -53,8 +53,9 @@ trigger, or a stick pushed further than a resting stick ever sits. Buttons and t
 face value because they cannot drift; the sticks are held to a higher bar than the deadzone so a
 worn pad on a shelf can never take the game away from the one in somebody's hands.
 
-Handing a second pad to somebody else and having them press A is therefore all it takes to switch,
-and the log names the pad it is listening to and how many it can see.
+Handing a second pad to somebody else and having them press A is therefore all it takes to switch.
+That press only takes control; it does not also jump or click. The log names the pad it is listening
+to and how many it can see.
 
 ## Layout
 
