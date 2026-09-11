@@ -14,4 +14,4 @@ Couch Controls compiles against Pandorical's live source for `NavigableScreen`, 
 ./gradlew build
 ```
 
-The Minecraft dependency is `>=26.3-alpha.1`, not the suite's usual `>=26.2`: SDL input is verified present on the 26.3 snapshots and nowhere earlier. **Write it as `alpha`, not `snapshot`** — Fabric normalizes `26.3-snapshot-8` to the semver prerelease `26.3-alpha.8`, so a predicate written against the Mojang spelling silently matches nothing and the mod refuses to load on the exact version it targets. The build stays green either way; only a launch catches it.
+The Minecraft and Fabric API ranges in `fabric.mod.json` are filled in from `gradle.properties` at build time. Change the pin, never the manifest.

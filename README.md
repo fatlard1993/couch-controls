@@ -69,12 +69,6 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | Right stick | Look |
 | Right trigger | Attack / break |
 | Left trigger | Use / place |
-
-**Reeling a fish** is the one place the left trigger is read as more than a button. The fishing
-fight (Minedew Fishing) is driven by right-clicks, one kick upward per click, and a mouse plays it by
-tapping at a rate. While a bobber is out, a tap of the trigger is still one click, and a hold clicks
-on its own: two a second at the lightest squeeze, eight fully pulled. Pull harder to rise, ease off to
-sink, let go to drop.
 | South (A) | Jump |
 | East (B) | Sneak (a press toggles it when the Sneak option is set to Toggle) |
 | West (X) | Drop item |
@@ -86,6 +80,12 @@ sink, let go to drop.
 | Back | Player list |
 | D-pad | Pandorical keybinds 1-4 (down = slot 1, poopsmith's poop key) |
 
+**Reeling a fish** is the one place the left trigger is read as more than a button. The fishing
+fight (Minedew Fishing) is driven by right-clicks, one kick upward per click, and a mouse plays it by
+tapping at a rate. While a bobber is out, a tap of the trigger is still one click, and a hold clicks
+on its own: two a second at the lightest squeeze, eight fully pulled. Pull harder to rise, ease off to
+sink, let go to drop.
+
 ### In menus
 
 | Control | Action |
@@ -95,7 +95,7 @@ sink, let go to drop.
 | South (A) | Click |
 | West (X) | Right click |
 | North (Y) | Shift-click (quick move); closes your own inventory |
-| East (B) | Close |
+| East (B) | Close (whatever Escape would close) |
 | Start | Close |
 | Shoulders | Scroll (bundle contents, long lists) |
 
@@ -105,9 +105,8 @@ Bindings are hardcoded for now. A rebinding UI is a real want, but it is a scree
 
 - **Text entry.** Chat, signs, anvils and command blocks still need a keyboard. Landing on a text field focuses it; typing into it is a separate problem that wants an on-screen keyboard.
 - **No rumble yet.** SDL exposes it and `Gamepad.rumble` is wired, but nothing calls it.
-- **No dead zone, sensitivity or binding configuration.** All tuning constants are in the source, each with a note on what moving it costs.
+- **No dead zone, sensitivity or binding configuration.** The tuning constants are hardcoded in the source.
 - **Creative inventory tabs** are widgets and so are reachable, but the tab strip navigates awkwardly.
-- **First pad only.** `SDL_GetGamepads` returns a list and this opens index 0.
 
 ## Development
 
