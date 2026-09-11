@@ -352,10 +352,9 @@ public final class Gamepad {
 	}
 
 	public void close() {
-		if (handle != 0L) {
-			SDLGamepad.SDL_CloseGamepad(handle);
-			handle = 0L;
-		}
+		for (long candidate : open) SDLGamepad.SDL_CloseGamepad(candidate);
+		open.clear();
+		handle = 0L;
 		if (subsystemReady) {
 			SDLInit.SDL_QuitSubSystem(SDLInit.SDL_INIT_GAMEPAD);
 			subsystemReady = false;
