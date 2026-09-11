@@ -75,7 +75,7 @@ tapping at a rate. While a bobber is out, a tap of the trigger is still one clic
 on its own: two a second at the lightest squeeze, eight fully pulled. Pull harder to rise, ease off to
 sink, let go to drop.
 | South (A) | Jump |
-| East (B) | Sneak |
+| East (B) | Sneak (a press toggles it when the Sneak option is set to Toggle) |
 | West (X) | Drop item |
 | North (Y) | Open inventory |
 | Shoulders | Cycle hotbar |

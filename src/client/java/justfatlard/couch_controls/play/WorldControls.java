@@ -87,6 +87,8 @@ public final class WorldControls {
 	private static boolean reelHeld;
 	private static float reelDue;
 	private static boolean sprintLatched;
+	/** Vanilla's Sneak: Toggle. A press then flips the key's own state through {@code ToggleKeyMapping}, and the hold is not reported. */
+	private static boolean sneakToggles;
 
 	/**
 	 * Fraction of a steering press carried over between ticks. See
@@ -139,6 +141,9 @@ public final class WorldControls {
 		}
 		spent.removeIf(slot -> !pad.isDown(slot));
 		active = true;
+
+		sneakToggles = client.options.toggleCrouch().get();
+		if (sneakToggles && pad.justPressed(Binds.SNEAK)) client.options.keyShift.setDown(true);
 
 		rodInHand = client.player != null
 			&& client.player.getMainHandItem().getItem() instanceof net.minecraft.world.item.FishingRodItem;
@@ -279,8 +284,8 @@ public final class WorldControls {
 			keys.backward() || y >= DIGITAL_THRESHOLD,
 			keys.left() || left,
 			keys.right() || right,
-			keys.jump() || held(pad, Binds.JUMP),
-			keys.shift() || held(pad, Binds.SNEAK),
+			keys.jump(),
+			keys.shift(),
 			keys.sprint() || sprintLatched);
 	}
 
@@ -345,6 +350,7 @@ public final class WorldControls {
 		// A rod is used by the click, never by the hold: vanilla's repeat of a held use would
 		// cast and retrieve by turns, and while reeling would pile onto the cadence.
 		if (rodInHand && slot != null && slot == Binds.USE) return false;
+		if (sneakToggles && slot != null && slot == Binds.SNEAK) return false;
 		return slot != null && held(Driver.gamepad(), slot);
 	}
 
