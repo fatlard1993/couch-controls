@@ -15,15 +15,11 @@ import java.util.List;
 public final class Targets {
 	private Targets() {}
 
-	/** Vanilla slots are 16x16, drawn one pixel inside their 18x18 cell. */
 	private static final int SLOT_SIZE = 16;
 
 	/**
-	 * Collected fresh every step rather than cached. Screens move under you:
-	 * a container repositions on resize, widgets come and go with state, and
-	 * Pandorical components are interpolated toward server-sent geometry over
-	 * several ticks after any update. A cache would age into wrong answers
-	 * silently, and the walk is a few dozen objects.
+	 * Fresh on every call, never cached: containers move on resize, widgets come and go, and
+	 * Pandorical components interpolate toward new geometry over several ticks.
 	 */
 	public static List<NavTarget> collect(Screen screen) {
 		List<NavTarget> targets = new ArrayList<>();
@@ -46,9 +42,7 @@ public final class Targets {
 		int top = ((AbstractContainerScreenAccessor) container).couch_controls$getTopPos();
 
 		for (Slot slot : container.getMenu().slots) {
-			// Empty slots stay in: they are where items get put down, and a
-			// navigator that could only reach occupied slots could pick a
-			// stack up and never place it.
+			// Empty slots stay: they are where a held stack gets put down.
 			if (!slot.isActive()) continue;
 
 			into.add(NavTarget.ofBounds(left + slot.x, top + slot.y, SLOT_SIZE, SLOT_SIZE));

@@ -16,24 +16,8 @@ import org.lwjgl.sdl.SDLMouse;
 import java.util.List;
 
 /**
- * Menu navigation: the half of a controller that a keyboard-and-mouse
- * emulator cannot do.
- *
- * <p>An emulated stick-as-mouse gives you a free-floating pointer to drive
- * onto a 16x16 slot, from a couch, on a 4K screen. This instead collects
- * where the slots and buttons actually are and steps between them, so a flick
- * of the stick lands dead centre on the next one.
- *
- * <p>It steps the <em>real</em> pointer rather than drawing a highlight of
- * its own, which is what keeps it honest: hover states, tooltips, item counts
- * and every screen's existing mouse handling all keep working, because from
- * the game's side nothing unusual happened. The right stick still moves the
- * pointer freely for anything this cannot enumerate.
- *
- * <p>The mouse is never held hostage. The pointer is only warped on a frame
- * the pad moved it, and when the mouse has moved on its own since the last
- * warp, the cursor follows the mouse instead: whichever hand moved last has
- * the pointer, and the pad's next step starts from wherever it is.
+ * Steps the real pointer between a screen's slots and buttons, and yields it to the mouse
+ * whenever the mouse moved last.
  */
 public final class Navigator {
 	private Navigator() {}
@@ -52,26 +36,19 @@ public final class Navigator {
 	private static final float OPEN_GRACE_SECONDS = 0.2f;
 	private static float grace;
 
-	/**
-	 * Sideways distance costs more than forward distance, so pressing "down"
-	 * in a grid prefers the slot directly below over one that is nearer in a
-	 * straight line but a column across. Purely a feel constant; higher makes
-	 * navigation more column-locked.
-	 */
+	/** Sideways distance costs this much more than forward, so "down" in a grid keeps to its column. */
 	private static final double PERPENDICULAR_PENALTY = 2.5;
 
 	/** SDL's left-shift bit. {@code MouseButtonEvent.hasShiftDown()} tests {@code modifiers & 3}. */
 	private static final int SHIFT_MODIFIER = 1;
 
 	/**
-	 * A warp's echo comes back through the event pump a frame later, so for
-	 * this many frames a pointer that is not yet where it was sent is the
-	 * warp still landing, not the mouse moving. Past it, the pump has had its
-	 * turn and any difference is the mouse's.
+	 * A warp's motion event arrives through the pump a frame later, so for this many frames a
+	 * pointer short of where it was sent is the warp still landing, not the mouse moving.
 	 */
 	private static final int WARP_SETTLE_FRAMES = 3;
 
-	/** The pointer counts as moved by the mouse past this, in window pixels; under it is rounding. */
+	/** Past this, in window pixels, the pointer was moved by the mouse; under it is rounding. */
 	private static final double MOUSE_MOVED_PIXELS = 1.5;
 
 	private static double cursorX;
@@ -82,9 +59,8 @@ public final class Navigator {
 	private static Screen current;
 	/** The screen the pad has seated itself on; null until its first step there. */
 	private static Screen seatedOn;
-	/** Whether the pad moved the cursor this frame, and so the pointer should follow it. */
 	private static boolean moved;
-	/** Where the pointer was last sent, in window pixels, and how long ago. */
+	/** Where the pointer was last sent, in window pixels. */
 	private static double warpedX;
 	private static double warpedY;
 	private static int framesSinceWarp = Integer.MAX_VALUE;
@@ -105,9 +81,6 @@ public final class Navigator {
 		List<NavTarget> targets = Targets.collect(screen);
 
 		if (current != screen) {
-			// A new screen: the cursor is wherever the mouse is, and stays the
-			// mouse's until the pad asks for it. Seating on every open moved the
-			// pointer out from under a mouse user whenever a pad was plugged in.
 			grace = current == null ? OPEN_GRACE_SECONDS : 0f;
 			current = screen;
 			seatedOn = null;
@@ -128,11 +101,7 @@ public final class Navigator {
 		moved = false;
 	}
 
-	/**
-	 * Let the mouse have the cursor when it has moved since the pad last put
-	 * the pointer somewhere. Nothing is warped here: this is the pad reading
-	 * where the mouse went, so its next step starts from there.
-	 */
+	/** Take the cursor from wherever the mouse went, if it moved since the pad last placed the pointer. */
 	private static void follow(Minecraft client, boolean always) {
 		double mouseX = client.mouseHandler.xpos();
 		double mouseY = client.mouseHandler.ypos();
@@ -155,12 +124,7 @@ public final class Navigator {
 		warpedY = mouseY;
 	}
 
-	/**
-	 * Put the cursor somewhere sensible the first time the pad steps on a
-	 * screen, rather than wherever the mouse happened to be left. Nearest
-	 * target to the middle, since that is usually the container itself rather
-	 * than a stray corner button.
-	 */
+	/** The pad's first push on a screen lands on the target nearest the middle, usually the container. */
 	private static void seat(Minecraft client, Screen screen, List<NavTarget> targets) {
 		seatedOn = screen;
 
@@ -185,12 +149,7 @@ public final class Navigator {
 		moved = true;
 	}
 
-	/**
-	 * The right stick as a plain pointer. Kept alongside stepping rather than
-	 * replaced by it: not everything is enumerable — a scrollable list, a map,
-	 * a screen from a mod that draws its own controls — and without this those
-	 * become unreachable rather than merely awkward.
-	 */
+	/** The right stick as a plain pointer, for what cannot be enumerated: scroll regions, maps, custom-drawn screens. */
 	private static void moveFreely(Gamepad pad, Minecraft client, float frameSeconds) {
 		float x = pad.rightX();
 		float y = pad.rightY();
@@ -223,15 +182,11 @@ public final class Navigator {
 			return;
 		}
 
-		// Same shape as a held key: the first step lands the moment the stick
-		// moves, then a long pause, then a fast run. The flag is what
-		// separates those two, since the cooldown has always run down to zero
-		// by the time we get here and cannot tell them apart on its own.
+		// The cooldown is zero for the first step and for the run alike; the flag tells them apart.
 		repeatCooldown = repeating ? REPEAT_INTERVAL_SECONDS : REPEAT_DELAY_SECONDS;
 		repeating = true;
 
-		// The first push on a screen seats the cursor and is spent on that: a
-		// seat-and-step would land one past the slot the player was shown.
+		// The seating push is spent on seating: a seat-and-step lands one past the slot shown.
 		if (seatedOn != screen) {
 			seat(client, screen, targets);
 			return;
@@ -255,8 +210,7 @@ public final class Navigator {
 			double offsetY = target.centerY() - cursorY;
 
 			double along = offsetX * dx + offsetY * dy;
-			// Strictly forward: a target level with the cursor is not "down"
-			// from it, and including those makes a grid step sideways.
+			// Strictly forward: counting targets level with the cursor makes a grid step sideways.
 			if (along <= 0.5) continue;
 
 			double perpendicular = Math.abs(offsetX * dy - offsetY * dx);
@@ -282,17 +236,12 @@ public final class Navigator {
 			if (openedByInventoryKey(screen)) screen.onClose();
 			else click(screen, InputConstants.MOUSE_BUTTON_LEFT, SHIFT_MODIFIER);
 		}
-		// Start closes as well as opens, so it toggles the pause menu the way a
-		// console game does. Without this the button that paused you does nothing to
-		// get you back, and a pad-only player has to reach for the keyboard.
 		if ((pad.justPressed(Binds.CLOSE) || pad.justPressed(Binds.PAUSE)) && screen.shouldCloseOnEsc()) {
 			screen.onClose();
 		}
 
-		// The shoulders are the wheel. Menus have a whole class of interaction that
-		// is scroll and nothing else: picking which item a bundle hands you next is
-		// driven purely by BundleMouseActions.onMouseScrolled, so without this a pad
-		// cannot reach inside a bundle at all. Scrollable lists get it for free.
+		// Some interactions are scroll and nothing else: a bundle's next item is chosen only
+		// in BundleMouseActions.onMouseScrolled.
 		if (pad.justPressed(Binds.SCROLL_UP)) scroll(screen, 1.0);
 		if (pad.justPressed(Binds.SCROLL_DOWN)) scroll(screen, -1.0);
 	}
@@ -310,13 +259,7 @@ public final class Navigator {
 		else send.run();
 	}
 
-	/**
-	 * A press and its release, through the screen's ordinary mouse path.
-	 *
-	 * <p>Both halves matter. Vanilla containers start a quick-craft drag on
-	 * press and only commit it on release, so a click that never releases
-	 * leaves the screen mid-drag and the next one behaves strangely.
-	 */
+	/** Press and release both: containers start a quick-craft drag on press and commit it only on release. */
 	private static void click(Screen screen, int button, int modifiers) {
 		MouseButtonEvent event = new MouseButtonEvent(cursorX, cursorY, new MouseButtonInfo(button, modifiers));
 
@@ -324,16 +267,7 @@ public final class Navigator {
 		screen.mouseReleased(event);
 	}
 
-	/**
-	 * Put the operating system pointer where the navigator thinks it is.
-	 *
-	 * <p>This is what makes hover and tooltips work without reimplementing
-	 * them: the warp produces an ordinary motion event, the game updates its
-	 * own pointer state from it, and every screen highlights whatever is
-	 * under the cursor exactly as it would for a mouse. Only on a frame the
-	 * pad moved the cursor; every frame was the mouse being dragged back to
-	 * wherever the pad had left it.
-	 */
+	/** Moves the OS pointer, so hover and tooltips update through the game's own mouse path. */
 	private static void warp(Minecraft client) {
 		Window window = client.getWindow();
 		if (window.getGuiScaledWidth() == 0 || window.getGuiScaledHeight() == 0) return;

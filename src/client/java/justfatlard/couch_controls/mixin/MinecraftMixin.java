@@ -8,13 +8,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * The per-frame heartbeat.
- *
- * <p>{@code runTick} rather than a Fabric client-tick callback because the
- * camera reads from here, and a game tick fires twenty times a second — fine
- * for discrete presses, visibly stepped for looking around. At the head of
- * the frame so the pad is already sampled by the time any mixin further down
- * asks a key mapping whether it is pressed.
+ * Per frame, not per client tick: the camera is driven from here, and twenty samples a second
+ * is visibly steppy. At the head, so the pad is sampled before any key mapping is asked.
  */
 @Mixin(Minecraft.class)
 public class MinecraftMixin {

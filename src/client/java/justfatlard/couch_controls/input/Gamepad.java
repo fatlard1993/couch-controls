@@ -8,67 +8,33 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The pad: opening it, polling it, and turning SDL's raw shorts into the
- * deadzoned floats and edge-triggered booleans everything else here wants.
- *
- * <p>Minecraft 26.3 runs on SDL3 rather than GLFW ({@code Window} takes an
- * {@code SDL_Event}, and {@code InputConstants}' key codes are SDL scancodes),
- * so the gamepad API is already loaded in this process. There is no native
- * library to ship and no second input backend to reconcile.
- *
- * <p><b>The event queue is not ours.</b> Minecraft owns the SDL event pump,
- * and draining it here would eat input the game needs. So gamepad events are
- * switched off entirely and state is refreshed on demand with
- * {@link SDLGamepad#SDL_UpdateGamepads()}: polling only, nothing queued,
- * nothing consumed. That also makes freshness independent of when — or
- * whether — the game happens to pump.
- */
+/** SDL's raw pad state as deadzoned floats and edge-triggered buttons, from whichever pad is in use. */
 public final class Gamepad {
-	/** SDL reports stick and trigger axes over the signed short range. */
 	private static final float AXIS_MAX = 32767f;
 
-	/**
-	 * Radial, not per-axis: a square deadzone lets a stick pushed hard along
-	 * one axis leak a few degrees of the other, which reads as drift on a
-	 * camera and as a diagonal on a menu. Sized for a worn stick rather than
-	 * a new one, since a new one costs nothing here and a worn one is
-	 * unusable without it.
-	 */
+	/** Radial, and sized for a worn stick: a new one loses nothing to it. */
 	private static final float STICK_DEADZONE = 0.18f;
 
 	/** Analog triggers act as buttons: down past the press edge, up again only under the release edge. */
 	private static final float TRIGGER_PRESS = 0.4f;
 	private static final float TRIGGER_RELEASE = 0.3f;
 
-	/** How often to look for pads appearing or going away. */
 	private static final long RESCAN_INTERVAL_MS = 1000L;
 
-	/**
-	 * How long the pad in charge must sit untouched before another one holding it may take over.
-	 *
-	 * <p>Long enough that it is never a race between two people playing, short enough that
-	 * picking up the other pad and pressing something just works. Nothing switches while the
-	 * active pad is in use, so this can only ever fire when whoever holds it has stopped.
-	 */
+	/** How long the driving pad must sit untouched before another may take over. */
 	private static final long IDLE_BEFORE_HANDOVER_MS = 2000L;
+
+	/** Well past the deadzone: a worn pad on a shelf rests outside it, and must never take the game. */
+	private static final float HANDOVER_STICK = 0.5f;
 
 	private static final int BUTTON_COUNT = SDLGamepad.SDL_GAMEPAD_BUTTON_COUNT;
 
-	/** Triggers are axes, but bind like buttons, so they get slots past the real ones. */
 	public static final int VIRTUAL_LEFT_TRIGGER = BUTTON_COUNT;
 	public static final int VIRTUAL_RIGHT_TRIGGER = BUTTON_COUNT + 1;
 	private static final int SLOT_COUNT = BUTTON_COUNT + 2;
 
 	private boolean subsystemReady;
-	/**
-	 * Every connected pad, held open; {@link #handle} is whichever one is driving.
-	 *
-	 * <p>All of them rather than the chosen one, because a pad has to be open to be read and
-	 * the whole question is which one is being used. Keeping them open makes the handover a
-	 * change of which handle is consulted, with nothing to close, reopen, or miss the moment
-	 * of. SDL_UpdateGamepads refreshes all of them in the one call already being made.
-	 */
+	/** Every connected pad, held open, because a pad must be open to be read and any of them may be the one in use. */
 	private final List<Long> open = new ArrayList<>();
 	private long handle;
 	/** True for the one poll where {@link #handle} changed; that pad's held buttons press nothing. */
@@ -81,22 +47,19 @@ public final class Gamepad {
 
 	private float leftX, leftY, rightX, rightY, leftTrigger, rightTrigger;
 
-	/**
-	 * Bring up the gamepad subsystem. Safe to call when the game already
-	 * started SDL — subsystems are reference counted, and video/events being
-	 * up says nothing about whether gamepads are.
-	 */
 	public void init() {
 		if (!SDLInit.SDL_InitSubSystem(SDLInit.SDL_INIT_GAMEPAD)) {
 			CouchControls.LOGGER.warn("SDL gamepad subsystem failed to start; controller support is off");
 			return;
 		}
 
+		// Minecraft owns the SDL event pump, and pad events queued there would be drained
+		// by it or crowd out its input. State is polled instead.
 		SDLGamepad.SDL_SetGamepadEventsEnabled(false);
 		subsystemReady = true;
 	}
 
-	/** Refresh every button and axis. Call once per frame, before anything reads state. */
+	/** Once per frame, before anything reads state. */
 	public void poll(long nowMs) {
 		if (!subsystemReady) return;
 
@@ -110,9 +73,7 @@ public final class Gamepad {
 		System.arraycopy(down, 0, wasDown, 0, SLOT_COUNT);
 
 		if (handle == 0L) {
-			// Clear rather than freeze: a pad unplugged mid-press would
-			// otherwise leave that button stuck down forever, and "stuck
-			// sneak" outlives the unplug in a way the player cannot undo.
+			// Cleared, not frozen: a pad unplugged mid-press would leave that button stuck down.
 			java.util.Arrays.fill(down, false);
 			leftX = leftY = rightX = rightY = leftTrigger = rightTrigger = 0f;
 			return;
@@ -143,12 +104,7 @@ public final class Gamepad {
 		if (handedOver) System.arraycopy(down, 0, wasDown, 0, SLOT_COUNT);
 	}
 
-	/**
-	 * Keep {@link #open} matching the pads SDL can see: open the new, close the departed.
-	 *
-	 * <p>Rate limited because SDL_GetGamepads allocates a buffer per call and this runs every
-	 * frame.
-	 */
+	/** Keep {@link #open} matching what SDL sees. Rate limited: SDL_GetGamepads allocates on every call. */
 	private void rescan(long nowMs) {
 		for (int i = open.size() - 1; i >= 0; i--) {
 			long candidate = open.get(i);
@@ -184,20 +140,8 @@ public final class Gamepad {
 		return false;
 	}
 
-	/**
-	 * Decide which pad is driving: the one being used, not the one SDL happened to list first.
-	 *
-	 * <p>Which pad that is cannot be known when the game starts - nobody is touching anything
-	 * yet - so the first one found takes it and keeps it until it goes quiet. Once it has been
-	 * idle a couple of seconds, any other pad showing input takes over.
-	 *
-	 * <p>Choosing blind is what this replaces, and it is not a hypothetical: a controller left
-	 * plugged in to charge beside the one in somebody's hands enumerated first, took the binding,
-	 * and reported itself connected exactly as though it had worked. The only cure was to unplug
-	 * the other pad.
-	 */
 	private void chooseActive(long nowMs) {
-		if (handle != 0L && active(handle)) {
+		if (handle != 0L && inUse(handle)) {
 			lastActivityMs = nowMs;
 			return;
 		}
@@ -220,64 +164,34 @@ public final class Gamepad {
 	private void bind(long candidate, long nowMs) {
 		handle = candidate;
 		lastActivityMs = nowMs;
-		// The count matters: with one pad this says what it found, and with more it says which
-		// of them it is listening to, which is the thing that used to be invisible.
 		CouchControls.LOGGER.info("Controller connected: {}{}",
 			SDLGamepad.SDL_GetGamepadName(handle),
 			open.size() > 1 ? " (" + open.size() + " connected)" : "");
 	}
 
-	/**
-	 * How far a stick must be pushed on an idle pad before it may take control.
-	 *
-	 * <p>Well past {@link #STICK_DEADZONE}, because a stick resting outside the deadzone is
-	 * exactly what a worn pad left on a shelf does, and that pad must never be able to take the
-	 * game away from the one in somebody's hands. A deliberate push clears this easily.
-	 */
-	private static final float HANDOVER_STICK = 0.5f;
-
-	/** Whether this pad is being touched right now: any button, stick or trigger off its rest. */
-	private boolean active(long candidate) {
-		for (int button = 0; button < BUTTON_COUNT; button++) {
-			if (SDLGamepad.SDL_GetGamepadButton(candidate, button)) return true;
-		}
-
-		if (axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER) >= TRIGGER_PRESS
-			|| axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) >= TRIGGER_PRESS) {
-			return true;
-		}
-
-		return deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTX,
-				SDLGamepad.SDL_GAMEPAD_AXIS_LEFTY, STICK_DEADZONE)
-			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTX,
-				SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTY, STICK_DEADZONE);
+	private boolean inUse(long candidate) {
+		return anyButtonOrTrigger(candidate)
+			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTX, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTY, STICK_DEADZONE)
+			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTX, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTY, STICK_DEADZONE);
 	}
 
-	/**
-	 * Whether an idle pad is being asked to take over: a button, a trigger, or a stick pushed
-	 * further than a resting one ever sits. Buttons and triggers need no such margin - they
-	 * cannot drift - so only the sticks are held to the higher bar.
-	 */
 	private boolean wantsControl(long candidate) {
+		return anyButtonOrTrigger(candidate)
+			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTX, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTY, HANDOVER_STICK)
+			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTX, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTY, HANDOVER_STICK);
+	}
+
+	private boolean anyButtonOrTrigger(long candidate) {
 		for (int button = 0; button < BUTTON_COUNT; button++) {
 			if (SDLGamepad.SDL_GetGamepadButton(candidate, button)) return true;
 		}
-
-		if (axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER) >= TRIGGER_PRESS
-			|| axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) >= TRIGGER_PRESS) {
-			return true;
-		}
-
-		return deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTX,
-				SDLGamepad.SDL_GAMEPAD_AXIS_LEFTY, HANDOVER_STICK)
-			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTX,
-				SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTY, HANDOVER_STICK);
+		return axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER) >= TRIGGER_PRESS
+			|| axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) >= TRIGGER_PRESS;
 	}
 
 	private boolean deflected(long candidate, int xAxis, int yAxis, float threshold) {
 		float x = axis(candidate, xAxis);
 		float y = axis(candidate, yAxis);
-		// Radial, matching the deadzone's own test rather than a per-axis one
 		return Math.sqrt(x * x + y * y) > threshold;
 	}
 
@@ -290,18 +204,11 @@ public final class Gamepad {
 	}
 
 	private float normalizeTrigger(int axis) {
-		// Triggers rest at 0 and only travel positive, so they get no deadzone
-		// scaling — just a clamp, since the negative half of the range is
-		// noise on some pads.
+		// Triggers only travel positive; the negative half is noise on some pads.
 		return Math.max(0f, raw(axis));
 	}
 
-	/**
-	 * Rescales a stick so the deadzone edge reads as zero and full deflection
-	 * still reads as one. Without the rescale, the first {@value
-	 * #STICK_DEADZONE} of travel past the threshold jumps straight to that
-	 * value, and fine aim near centre becomes impossible.
-	 */
+	/** Rescales a stick so the deadzone edge reads as zero and full deflection still reads as one. */
 	private static float deadzoneScale(float x, float y) {
 		float magnitude = (float) Math.sqrt(x * x + y * y);
 		if (magnitude <= STICK_DEADZONE) return 0f;
@@ -331,17 +238,10 @@ public final class Gamepad {
 	public float leftY() { return leftY; }
 	public float rightX() { return rightX; }
 	public float rightY() { return rightY; }
-	/** How far the left trigger is pulled, 0 to 1, past the deadzone. */
 	public float leftTrigger() { return leftTrigger; }
-	/** How far the right trigger is pulled, 0 to 1, past the deadzone. */
 	public float rightTrigger() { return rightTrigger; }
-	/** Where a trigger counts as pressed. */
 	public static float triggerPress() { return TRIGGER_PRESS; }
 
-	/**
-	 * Fire the rumble motors. Free here — SDL owns them, so unlike the
-	 * GLFW-era controller mods this needs no extra native library.
-	 */
 	public void rumble(float low, float high, int durationMs) {
 		if (handle == 0L) return;
 		SDLGamepad.SDL_RumbleGamepad(

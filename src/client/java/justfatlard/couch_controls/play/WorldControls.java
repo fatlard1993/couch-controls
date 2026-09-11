@@ -20,66 +20,34 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Everything the pad does while the player is in the world.
- *
- * <p>Actions are not simulated here. Each one is bound to the vanilla
- * {@link KeyMapping} that already means it, and {@code KeyMappingMixin} makes
- * that mapping report pressed while the pad button is held. Block breaking
- * with its progress and cooldown, item use with its charge-up, sprint,
- * sneak — all of it then runs down the ordinary key path, unmodified and
- * unaware. The alternative, calling game methods directly, means
- * reimplementing every one of those behaviours and getting them subtly wrong.
- *
- * <p>Movement is the exception, because a key is binary and a stick is not:
- * see {@link #moveVector()}.
+ * The pad in the world. Actions are vanilla key mappings reporting pressed ({@code KeyMappingMixin});
+ * movement is the exception, because a key is binary and a stick is not.
  */
 public final class WorldControls {
 	private WorldControls() {}
 
-	/**
-	 * Turn rate at full stick deflection. Camera speed is the single most
-	 * personal setting on a controller and this one is not adjustable yet, so
-	 * it is set deliberately toward the slower end — a camera that is too
-	 * fast is unusable, one that is too slow is merely annoying.
-	 */
+	/** Deliberately slow: a camera too fast is unusable, one too slow merely annoying. */
 	private static final float LOOK_DEGREES_PER_SECOND = 220f;
 
 	/** {@code Entity.turn} multiplies both arguments by this before applying them. */
 	private static final float TURN_SCALE = 0.15f;
 
-	/**
-	 * Stick deflection below which the camera holds still. Above the raw
-	 * deadzone, because a camera magnifies drift that movement would not
-	 * even show.
-	 */
+	/** Above the stick deadzone, because a camera magnifies drift that walking would not show. */
 	private static final float LOOK_THRESHOLD = 0.06f;
 
-	/**
-	 * Where a stick push starts counting as "that direction" for the boolean
-	 * record. Low on purpose: the deadzone has already thrown away noise, so
-	 * anything that reaches here is deliberate, and a walk that the server is
-	 * never told about is a walk it can refuse to let you sprint out of.
-	 */
+	/** Low: a walk the server is never told about is one it can refuse to let you sprint out of. */
 	private static final float DIGITAL_THRESHOLD = 0.1f;
 
-	/** Pad buttons that stand in for a vanilla key, resolved once options exist. */
 	private static final Map<KeyMapping, Integer> boundSlots = new IdentityHashMap<>();
 
-	/**
-	 * Presses seen but not yet claimed by {@code consumeClick}. Vanilla polls
-	 * clicks on the game tick while the pad is read every frame, so an edge
-	 * has to wait somewhere or a press made between two ticks is simply lost.
-	 */
+	/** Edges wait here for {@code consumeClick}: vanilla drains clicks per tick, the pad is read per frame. */
 	private static final Map<KeyMapping, Integer> pendingClicks = new IdentityHashMap<>();
 
 	private static Vec2 padMove;
 
 	/**
-	 * Reeling: the fishing fight is driven by right-clicks, every click one kick upward, so a
-	 * mouse plays it by tapping at a rate. A trigger is a poor thing to tap at four a second and
-	 * a good thing to squeeze, so while a bobber is out the use trigger becomes a cadence: a tap
-	 * is still one click, and a hold clicks on its own, faster the harder it is pulled. Between
-	 * these two rates, which bracket what the fight asks for.
+	 * While a bobber is out, a held use trigger clicks on its own at a rate that follows the pull.
+	 * The range brackets what Minedew Fishing's click-driven fight asks for.
 	 */
 	private static final float REEL_MIN_CLICKS_PER_SECOND = 2f;
 	private static final float REEL_MAX_CLICKS_PER_SECOND = 8f;
@@ -90,21 +58,11 @@ public final class WorldControls {
 	private static boolean reelHeld;
 	private static float reelDue;
 	private static boolean sprintLatched;
-	/** Vanilla's Sneak: Toggle. A press then flips the key's own state through {@code ToggleKeyMapping}, and the hold is not reported. */
+	/** Vanilla's Sneak: Toggle. A press flips the key's own state through {@code ToggleKeyMapping}; the hold is not reported. */
 	private static boolean sneakToggles;
-
-	/**
-	 * Fraction of a steering press carried over between ticks. See
-	 * {@link #steerPulse(float)}.
-	 */
 	private static float steerPhase;
 
-	/**
-	 * False whenever the world is not what the pad is pointed at — a screen is
-	 * open, or the pad went away. Every read below is gated on it, because
-	 * this class holds state between frames and stale state does not stop
-	 * being applied just because nothing updated it.
-	 */
+	/** False while a screen is up or the pad is gone. */
 	private static boolean active;
 
 	/** Buttons already down when the world took the pad back; they read as up until released. */
@@ -144,8 +102,6 @@ public final class WorldControls {
 		rodInHand = client.player != null && usesRod(client.player);
 		boolean bobberOut = rodInHand && client.player.fishing != null;
 		if (bobberOut && !reeling) {
-			// The line just went out. The finger that cast it is still down, and that press
-			// has been spent: nothing more until it lifts.
 			reelArmed = !pad.isDown(Binds.USE);
 			reelHeld = false;
 		}
@@ -160,11 +116,8 @@ public final class WorldControls {
 		if (reeling) applyReel(pad, client.options, frameSeconds);
 		else reelHeld = false;
 
-		// Pause is the one action with no KeyMapping to borrow: vanilla drives it
-		// straight off the escape key rather than through options, so it cannot ride
-		// the bound-slot map above and calls the game directly instead. Returning
-		// here keeps the same frame from also steering a player who just walked away
-		// from the controls.
+		// Pause has no KeyMapping; vanilla reads Escape directly. Returning keeps
+		// this frame from steering the player behind the menu.
 		if (pad.justPressed(Binds.PAUSE)) {
 			client.pauseGame(false);
 			return;
@@ -188,7 +141,7 @@ public final class WorldControls {
 			|| (main.isEmpty() && player.getOffhandItem().getItem() instanceof FishingRodItem);
 	}
 
-	/** The use trigger as a click cadence: one on the squeeze, then a run whose rate follows the pull. */
+	/** One click on the squeeze, then a run whose rate follows the pull. */
 	private static void applyReel(Gamepad pad, Options options, float frameSeconds) {
 		if (!pad.isDown(Binds.USE)) {
 			reelArmed = true;
@@ -217,9 +170,7 @@ public final class WorldControls {
 		float y = pad.rightY();
 		if (Math.abs(x) < LOOK_THRESHOLD && Math.abs(y) < LOOK_THRESHOLD) return;
 
-		// Squared response: the stick's own range is linear, but aiming wants
-		// most of its travel spent on small corrections and only the last of
-		// it on whipping around. Sign is restored after squaring.
+		// Squared, sign kept: most of the stick's travel buys small corrections.
 		float yaw = x * Math.abs(x) * LOOK_DEGREES_PER_SECOND * frameSeconds;
 		float pitch = y * Math.abs(y) * LOOK_DEGREES_PER_SECOND * frameSeconds;
 
@@ -236,32 +187,15 @@ public final class WorldControls {
 			return;
 		}
 
-		// Minecraft's forward axis is positive away from the player, while
-		// the stick's Y is positive downward, so forward has to be negated.
+		// The stick's Y is positive downward; Minecraft's forward is positive away.
 		padMove = new Vec2(-x, -y);
 
-		// Sprint is a latch, not a hold: nobody keeps a stick clicked in for
-		// the length of a journey. It clears when the stick returns to centre
-		// (above), which is also how the player stops sprinting.
 		if (pad.justPressed(Binds.SPRINT)) sprintLatched = true;
 	}
 
 	/**
-	 * Fold the pad into the boolean input record, called from the tail of
-	 * {@code KeyboardInput.tick()}.
-	 *
-	 * <p>The timing is the whole point, and doing it anywhere else silently
-	 * does nothing. This record is rebuilt from the keyboard on every game
-	 * tick, so a gamepad written into it earlier in the frame is overwritten
-	 * before a single consumer sees it. Writing it here, immediately after
-	 * vanilla computes it, is the only point where it survives.
-	 *
-	 * <p>It matters more than it looks. {@link #moveVector()} is what the
-	 * client walks by, so movement appears to work regardless — but this
-	 * record is what gets sent to the server, and what the tutorial reads.
-	 * Lose it and the server never learns the player is moving, sprinting or
-	 * sneaking, and the "Move with W, A, S and D" toast never clears because
-	 * as far as the game is concerned nobody ever moved.
+	 * The boolean record the server is sent: the stick as directions, and the sprint latch.
+	 * Jump and sneak already arrive through their key mappings.
 	 */
 	public static Input mergeKeyPresses(Input keys) {
 		if (!active) return keys;
@@ -297,21 +231,9 @@ public final class WorldControls {
 	}
 
 	/**
-	 * Turn a stick magnitude into a press pattern, for the one vehicle that reads
-	 * nothing else.
-	 *
-	 * <p>A boat steers by adding a fixed step to its own rotation on every tick
-	 * the left or right boolean is held. There is no half press, so a stick an
-	 * eighth of the way over turns exactly as hard as one pinned to the edge, and
-	 * the only available turn is the sharpest one. On foot this never shows,
-	 * because {@link #moveVector()} carries the magnitude down a separate path;
-	 * a boat has no such path.
-	 *
-	 * <p>So the magnitude becomes the fraction of ticks the press is held: a
-	 * third of the way over presses on a third of the ticks. The boat's rotation
-	 * carries momentum between ticks, which smooths the gaps back into a turn
-	 * that is simply slower rather than one that stutters. Squared first, for the
-	 * same reason the camera is: most of the travel should buy fine control.
+	 * A boat turns a fixed step on every tick left or right is held, with no half press and no
+	 * analog path. So the stick's magnitude, squared like the camera's, becomes the fraction of
+	 * ticks the press is held, and the boat's momentum smooths the gaps into a slower turn.
 	 */
 	private static boolean steerPulse(float magnitude) {
 		steerPhase += magnitude * magnitude;
@@ -330,17 +252,7 @@ public final class WorldControls {
 		player.getInventory().setSelectedSlot(Math.floorMod(player.getInventory().getSelectedSlot() + step, 9));
 	}
 
-	/**
-	 * The analog half of movement, read by {@code LocalPlayerMixin}.
-	 *
-	 * <p>The boolean {@link Input} record above is what the server is told,
-	 * and booleans are all it wants. This vector is what the client actually
-	 * walks by, and keeping it analog is the difference between a stick that
-	 * creeps and one that only ever sprints in eight directions.
-	 *
-	 * @return the pad's movement, or null when the stick is centred and
-	 *         vanilla's own vector should stand.
-	 */
+	/** The pad's movement vector, or null when the stick is centred and vanilla's should stand. */
 	public static Vec2 moveVector() {
 		return padMove;
 	}
@@ -349,11 +261,12 @@ public final class WorldControls {
 		if (!active) return false;
 
 		Integer slot = boundSlots.get(mapping);
-		// A rod is used by the click, never by the hold: vanilla's repeat of a held use would
-		// cast and retrieve by turns, and while reeling would pile onto the cadence.
-		if (rodInHand && slot != null && slot == Binds.USE) return false;
-		if (sneakToggles && slot != null && slot == Binds.SNEAK) return false;
-		return slot != null && held(Driver.gamepad(), slot);
+		if (slot == null) return false;
+		// A rod is used by the click, never the hold: vanilla's held-use repeat would cast and
+		// retrieve by turns, and while reeling would pile onto the cadence.
+		if (rodInHand && slot == Binds.USE) return false;
+		if (sneakToggles && slot == Binds.SNEAK) return false;
+		return held(Driver.gamepad(), slot);
 	}
 
 	public static boolean consumePadClick(KeyMapping mapping) {
@@ -365,14 +278,8 @@ public final class WorldControls {
 	}
 
 	/**
-	 * Drop every held input and stop answering for the pad.
-	 *
-	 * <p>Called when a screen opens and when the pad goes away, and both
-	 * matter for the same reason: this class is read by mixins on every tick
-	 * regardless of what it last computed. Without this, opening a chest
-	 * while pushing the stick leaves {@link #moveVector()} returning that
-	 * push forever, and the player walks away from the chest they just
-	 * opened.
+	 * Drops every held input. Mixins read this state on every tick whether or not anything
+	 * recomputes it. The bindings, {@link #spent} and the reel's arming outlive it on purpose.
 	 */
 	public static void release() {
 		active = false;
