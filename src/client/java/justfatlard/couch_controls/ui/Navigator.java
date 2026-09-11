@@ -44,6 +44,10 @@ public final class Navigator {
 
 	private static final float FREE_CURSOR_PIXELS_PER_SECOND = 500f;
 
+	/** Presses are dropped this long after a screen opens over the world, so one meant for the world cannot click it. */
+	private static final float OPEN_GRACE_SECONDS = 0.2f;
+	private static float grace;
+
 	/**
 	 * Sideways distance costs more than forward distance, so pressing "down"
 	 * in a grid prefers the slot directly below over one that is nearer in a
@@ -100,6 +104,7 @@ public final class Navigator {
 			// A new screen: the cursor is wherever the mouse is, and stays the
 			// mouse's until the pad asks for it. Seating on every open moved the
 			// pointer out from under a mouse user whenever a pad was plugged in.
+			grace = current == null ? OPEN_GRACE_SECONDS : 0f;
 			current = screen;
 			seatedOn = null;
 			repeatCooldown = 0f;
@@ -112,7 +117,8 @@ public final class Navigator {
 
 		moveFreely(pad, client, frameSeconds);
 		step(pad, client, screen, targets, frameSeconds);
-		press(pad, screen);
+		if (grace > 0f) grace -= frameSeconds;
+		else press(pad, screen);
 
 		if (moved) warp(client);
 		moved = false;
