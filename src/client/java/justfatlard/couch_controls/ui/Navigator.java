@@ -2,6 +2,7 @@ package justfatlard.couch_controls.ui;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.Window;
+import justfatlard.couch_controls.CouchControls;
 import justfatlard.couch_controls.input.Binds;
 import justfatlard.couch_controls.input.Gamepad;
 import net.minecraft.client.Minecraft;
@@ -301,7 +302,7 @@ public final class Navigator {
 	}
 
 	private static final boolean NAVIGATION_SCROLL =
-		net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("pandorical") && PandoricalScroll.linked();
+		CouchControls.PANDORICAL_LOADED && PandoricalScroll.linked();
 
 	private static void scroll(Screen screen, double notches) {
 		Runnable send = () -> screen.mouseScrolled(cursorX, cursorY, 0.0, notches);

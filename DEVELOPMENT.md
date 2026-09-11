@@ -8,7 +8,7 @@ Drop the jar in your client's `mods` folder alongside its declared dependencies 
 
 ## Building
 
-Couch Controls compiles against Pandorical's live source for `NavigableScreen`, not a published artifact: `settings.gradle` includes `../pandorical`. Check both out side by side or the build fails before it starts. Pandorical is still only a *runtime* soft dependency; the compile-time one is what makes the integration drift into a build error instead of a silent no-op.
+Couch Controls compiles against Pandorical's live source, not a published artifact: `settings.gradle` includes `../pandorical`. Check both out side by side or the build fails before it starts. The compile catches drift between the two trees, not against the older Pandorical a player may have installed; see the Pandorical section of the README for how that is handled at runtime.
 
 ```bash
 ./gradlew build

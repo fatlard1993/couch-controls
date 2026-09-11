@@ -38,7 +38,7 @@ The other half is keybinds. Suite mods declare their own keys through Pandorical
 
 Because Pandorical is the platform every suite screen is built on, this covers the suite by construction — and `PandoricalContainerScreen` extends the vanilla container screen, so its item slots were already covered by the vanilla path.
 
-The integration is compiled against the real interface, **not** reflection. The suite already knows what string-keyed reflection costs (see the village web's `integration/` packages, which fail silently when a class is renamed); a compile-checked interface turns that same drift into a build error. Runtime isolation is by class-loading: the flag lives in `Targets`, so a client without Pandorical never loads the class that names it.
+The integration is compiled against the real interface, **not** reflection. The suite already knows what string-keyed reflection costs (see the village web's `integration/` packages, which fail silently when a class is renamed); compiling against Pandorical's source turns drift between the two trees into a build error. That says nothing about the Pandorical a player installed, which may be older. Runtime isolation is by class-loading behind one flag, `CouchControls.PANDORICAL_LOADED`, so a client without Pandorical never loads a class that names it, and API newer than the oldest published Pandorical is probed before its first use.
 
 ## Which pad, when there are two
 

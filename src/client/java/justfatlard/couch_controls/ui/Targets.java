@@ -1,7 +1,7 @@
 package justfatlard.couch_controls.ui;
 
+import justfatlard.couch_controls.CouchControls;
 import justfatlard.couch_controls.mixin.AbstractContainerScreenAccessor;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,8 +17,6 @@ public final class Targets {
 
 	/** Vanilla slots are 16x16, drawn one pixel inside their 18x18 cell. */
 	private static final int SLOT_SIZE = 16;
-
-	private static final boolean PANDORICAL_LOADED = FabricLoader.getInstance().isModLoaded("pandorical");
 
 	/**
 	 * Collected fresh every step rather than cached. Screens move under you:
@@ -36,11 +34,7 @@ public final class Targets {
 
 		collectWidgets(screen, targets);
 
-		// Guarded rather than merged into the walk above: PandoricalTargets
-		// names Pandorical's classes, and Pandorical is a soft dependency.
-		// The flag has to be tested here, in a class that always loads, so
-		// that a client without Pandorical never reaches that one at all.
-		if (PANDORICAL_LOADED) {
+		if (CouchControls.PANDORICAL_LOADED) {
 			PandoricalTargets.collect(screen, targets);
 		}
 

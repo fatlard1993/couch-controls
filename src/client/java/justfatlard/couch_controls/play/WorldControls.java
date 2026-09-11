@@ -1,5 +1,6 @@
 package justfatlard.couch_controls.play;
 
+import justfatlard.couch_controls.CouchControls;
 import justfatlard.couch_controls.Driver;
 import justfatlard.couch_controls.input.Binds;
 import justfatlard.couch_controls.input.Gamepad;
@@ -113,17 +114,10 @@ public final class WorldControls {
 		return pad.isDown(slot) && !spent.contains(slot);
 	}
 
-	/**
-	 * Guarded here, in a class that always loads, so a client without Pandorical
-	 * never reaches PandoricalKeybinds at all. Same shape as Targets' guard.
-	 */
-	private static final boolean PANDORICAL_LOADED =
-		net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("pandorical");
-
 	private static void bind(Options options) {
 		if (!boundSlots.isEmpty()) return;
 
-		if (PANDORICAL_LOADED) PandoricalKeybinds.bind(boundSlots);
+		if (CouchControls.PANDORICAL_LOADED) PandoricalKeybinds.bind(boundSlots);
 
 		boundSlots.put(options.keyJump, Binds.JUMP);
 		boundSlots.put(options.keyShift, Binds.SNEAK);
