@@ -12,7 +12,9 @@ import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.phys.Vec2;
 
 import java.util.IdentityHashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Everything the pad does while the player is in the world.
@@ -100,6 +102,13 @@ public final class WorldControls {
 	 */
 	private static boolean active;
 
+	/** Buttons already down when the world took the pad back; they read as up until released. */
+	private static final Set<Integer> spent = new HashSet<>();
+
+	private static boolean held(Gamepad pad, int slot) {
+		return pad.isDown(slot) && !spent.contains(slot);
+	}
+
 	/**
 	 * Guarded here, in a class that always loads, so a client without Pandorical
 	 * never reaches PandoricalKeybinds at all. Same shape as Targets' guard.
@@ -124,8 +133,12 @@ public final class WorldControls {
 
 	/** Called once per frame while no screen is open. */
 	public static void onFrame(Gamepad pad, Minecraft client, float frameSeconds) {
-		active = true;
 		bind(client.options);
+		if (!active) {
+			for (int slot : boundSlots.values()) if (pad.isDown(slot)) spent.add(slot);
+		}
+		spent.removeIf(slot -> !pad.isDown(slot));
+		active = true;
 
 		rodInHand = client.player != null
 			&& client.player.getMainHandItem().getItem() instanceof net.minecraft.world.item.FishingRodItem;
@@ -267,8 +280,8 @@ public final class WorldControls {
 			keys.backward() || y >= DIGITAL_THRESHOLD,
 			keys.left() || left,
 			keys.right() || right,
-			keys.jump() || pad.isDown(Binds.JUMP),
-			keys.shift() || pad.isDown(Binds.SNEAK),
+			keys.jump() || held(pad, Binds.JUMP),
+			keys.shift() || held(pad, Binds.SNEAK),
 			keys.sprint() || sprintLatched);
 	}
 
@@ -333,7 +346,7 @@ public final class WorldControls {
 		// A rod is used by the click, never by the hold: vanilla's repeat of a held use would
 		// cast and retrieve by turns, and while reeling would pile onto the cadence.
 		if (rodInHand && slot != null && slot == Binds.USE) return false;
-		return slot != null && Driver.gamepad().isDown(slot);
+		return slot != null && held(Driver.gamepad(), slot);
 	}
 
 	public static boolean consumePadClick(KeyMapping mapping) {
