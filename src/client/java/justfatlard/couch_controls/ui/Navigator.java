@@ -273,7 +273,7 @@ public final class Navigator {
 		// Start closes as well as opens, so it toggles the pause menu the way a
 		// console game does. Without this the button that paused you does nothing to
 		// get you back, and a pad-only player has to reach for the keyboard.
-		if (pad.justPressed(Binds.CLOSE) || pad.justPressed(Binds.PAUSE)) {
+		if ((pad.justPressed(Binds.CLOSE) || pad.justPressed(Binds.PAUSE)) && screen.shouldCloseOnEsc()) {
 			screen.onClose();
 		}
 
