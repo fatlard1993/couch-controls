@@ -37,8 +37,9 @@ public final class Gamepad {
 	 */
 	private static final float STICK_DEADZONE = 0.18f;
 
-	/** Analog triggers act as buttons; this is where they latch. */
-	private static final float TRIGGER_THRESHOLD = 0.4f;
+	/** Analog triggers act as buttons: down past the press edge, up again only under the release edge. */
+	private static final float TRIGGER_PRESS = 0.4f;
+	private static final float TRIGGER_RELEASE = 0.3f;
 
 	/** How often to look for pads appearing or going away. */
 	private static final long RESCAN_INTERVAL_MS = 1000L;
@@ -119,8 +120,8 @@ public final class Gamepad {
 
 		leftTrigger = normalizeTrigger(SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
 		rightTrigger = normalizeTrigger(SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
-		down[VIRTUAL_LEFT_TRIGGER] = leftTrigger >= TRIGGER_THRESHOLD;
-		down[VIRTUAL_RIGHT_TRIGGER] = rightTrigger >= TRIGGER_THRESHOLD;
+		down[VIRTUAL_LEFT_TRIGGER] = leftTrigger >= (wasDown[VIRTUAL_LEFT_TRIGGER] ? TRIGGER_RELEASE : TRIGGER_PRESS);
+		down[VIRTUAL_RIGHT_TRIGGER] = rightTrigger >= (wasDown[VIRTUAL_RIGHT_TRIGGER] ? TRIGGER_RELEASE : TRIGGER_PRESS);
 
 		float rawLeftX = raw(SDLGamepad.SDL_GAMEPAD_AXIS_LEFTX);
 		float rawLeftY = raw(SDLGamepad.SDL_GAMEPAD_AXIS_LEFTY);
@@ -235,8 +236,8 @@ public final class Gamepad {
 			if (SDLGamepad.SDL_GetGamepadButton(candidate, button)) return true;
 		}
 
-		if (axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER) >= TRIGGER_THRESHOLD
-			|| axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) >= TRIGGER_THRESHOLD) {
+		if (axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER) >= TRIGGER_PRESS
+			|| axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) >= TRIGGER_PRESS) {
 			return true;
 		}
 
@@ -256,8 +257,8 @@ public final class Gamepad {
 			if (SDLGamepad.SDL_GetGamepadButton(candidate, button)) return true;
 		}
 
-		if (axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER) >= TRIGGER_THRESHOLD
-			|| axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) >= TRIGGER_THRESHOLD) {
+		if (axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFT_TRIGGER) >= TRIGGER_PRESS
+			|| axis(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) >= TRIGGER_PRESS) {
 			return true;
 		}
 
@@ -325,7 +326,7 @@ public final class Gamepad {
 	/** How far the right trigger is pulled, 0 to 1, past the deadzone. */
 	public float rightTrigger() { return rightTrigger; }
 	/** Where a trigger counts as pressed. */
-	public static float triggerThreshold() { return TRIGGER_THRESHOLD; }
+	public static float triggerPress() { return TRIGGER_PRESS; }
 
 	/**
 	 * Fire the rumble motors. Free here — SDL owns them, so unlike the

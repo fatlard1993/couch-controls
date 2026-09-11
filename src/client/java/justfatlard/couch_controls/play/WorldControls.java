@@ -146,7 +146,7 @@ public final class WorldControls {
 		if (bobberOut && !reeling) {
 			// The line just went out. The finger that cast it is still down, and that press
 			// has been spent: nothing more until it lifts.
-			reelArmed = pad.leftTrigger() < Gamepad.triggerThreshold();
+			reelArmed = !pad.isDown(Binds.USE);
 			reelHeld = false;
 		}
 		reeling = bobberOut;
@@ -183,9 +183,7 @@ public final class WorldControls {
 
 	/** The use trigger as a click cadence: one on the squeeze, then a run whose rate follows the pull. */
 	private static void applyReel(Gamepad pad, Options options, float frameSeconds) {
-		float depth = pad.leftTrigger();
-		float threshold = Gamepad.triggerThreshold();
-		if (depth < threshold) {
+		if (!pad.isDown(Binds.USE)) {
 			reelArmed = true;
 			reelHeld = false;
 			return;
@@ -197,7 +195,8 @@ public final class WorldControls {
 			pendingClicks.merge(options.keyUse, 1, Integer::sum);
 			return;
 		}
-		float pull = Math.min(1f, (depth - threshold) / (1f - threshold));
+		float press = Gamepad.triggerPress();
+		float pull = Math.clamp((pad.leftTrigger() - press) / (1f - press), 0f, 1f);
 		float rate = REEL_MIN_CLICKS_PER_SECOND + pull * (REEL_MAX_CLICKS_PER_SECOND - REEL_MIN_CLICKS_PER_SECOND);
 		reelDue += frameSeconds * rate;
 		while (reelDue >= 1f) {

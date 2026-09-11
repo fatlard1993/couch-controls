@@ -37,8 +37,9 @@ import java.util.List;
 public final class Navigator {
 	private Navigator() {}
 
-	/** How far the left stick must go before it counts as a step. */
+	/** How far the left stick must go before it counts as a step, and how far back before a held step lets go. */
 	private static final float STEP_THRESHOLD = 0.5f;
+	private static final float STEP_RELEASE = 0.4f;
 
 	/** Held-direction repeat, tuned like a key: one step, a pause, then a run. */
 	private static final float REPEAT_DELAY_SECONDS = 0.35f;
@@ -204,10 +205,11 @@ public final class Navigator {
 		int dx = 0;
 		int dy = 0;
 
-		if (pad.isDown(Binds.NAV_LEFT) || pad.leftX() <= -STEP_THRESHOLD) dx--;
-		if (pad.isDown(Binds.NAV_RIGHT) || pad.leftX() >= STEP_THRESHOLD) dx++;
-		if (pad.isDown(Binds.NAV_UP) || pad.leftY() <= -STEP_THRESHOLD) dy--;
-		if (pad.isDown(Binds.NAV_DOWN) || pad.leftY() >= STEP_THRESHOLD) dy++;
+		float reach = repeating ? STEP_RELEASE : STEP_THRESHOLD;
+		if (pad.isDown(Binds.NAV_LEFT) || pad.leftX() <= -reach) dx--;
+		if (pad.isDown(Binds.NAV_RIGHT) || pad.leftX() >= reach) dx++;
+		if (pad.isDown(Binds.NAV_UP) || pad.leftY() <= -reach) dy--;
+		if (pad.isDown(Binds.NAV_DOWN) || pad.leftY() >= reach) dy++;
 
 		if (dx == 0 && dy == 0) {
 			repeatCooldown = 0f;
