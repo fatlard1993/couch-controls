@@ -70,11 +70,12 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | Right trigger | Attack / break |
 | Left trigger | Use / place |
 | South (A) | Jump |
-| East (B) | Sneak (a press toggles it when the Sneak option is set to Toggle) |
 | West (X) | Drop item |
 | North (Y) | Open inventory |
 | Shoulders | Cycle hotbar |
-| Left stick click | Sprint (latches until the stick recentres) |
+| Left stick all the way forward | Sprint (latches until the stick recentres; afloat in deep water, it holds through the surface and dives at the next dip) |
+| Left stick click | Sneak (a press toggles it when the Sneak option is set to Toggle) |
+| East (B) | Chat, with the pointer on the newest link: A clicks it, so a teleport or trade request is B then A |
 | Right stick click | Swap hands |
 | Start | Pause menu (press again to close) |
 | Back | Player list |
@@ -103,7 +104,7 @@ Bindings are hardcoded for now. A rebinding UI is a real want, but it is a scree
 
 ## Known gaps
 
-- **Text entry.** Chat, signs, anvils and command blocks still need a keyboard. Landing on a text field focuses it; typing into it is a separate problem that wants an on-screen keyboard.
+- **Text entry.** Typing in chat, signs, anvils and command blocks still needs a keyboard; chat can be opened and its links clicked from the pad. Landing on a text field focuses it; typing into it is a separate problem that wants an on-screen keyboard.
 - **No rumble yet.** SDL exposes it and `Gamepad.rumble` is wired, but nothing calls it.
 - **No dead zone, sensitivity or binding configuration.** The tuning constants are hardcoded in the source.
 - **Creative inventory tabs** are widgets and so are reachable, but the tab strip navigates awkwardly.

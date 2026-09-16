@@ -4,6 +4,8 @@ import justfatlard.couch_controls.CouchControls;
 import justfatlard.couch_controls.mixin.AbstractContainerScreenAccessor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
@@ -26,6 +28,10 @@ public final class Targets {
 
 		if (screen instanceof AbstractContainerScreen<?> container) {
 			collectSlots(container, targets);
+		}
+
+		if (screen instanceof ChatScreen) {
+			ChatLinks.collect(Minecraft.getInstance(), targets);
 		}
 
 		collectWidgets(screen, targets);

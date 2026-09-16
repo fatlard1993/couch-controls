@@ -4,7 +4,7 @@ import org.lwjgl.sdl.SDLGamepad;
 
 /**
  * Which physical control does what, by position (SOUTH, not A). The world and menu tables
- * overlap on purpose: SOUTH is jump and confirm, EAST is sneak and back out.
+ * overlap on purpose: SOUTH is jump and confirm. Sprint is no button: see {@code WorldControls}.
  */
 public final class Binds {
 	private Binds() {}
@@ -12,9 +12,10 @@ public final class Binds {
 	// --- In world ---
 
 	public static final int JUMP = SDLGamepad.SDL_GAMEPAD_BUTTON_SOUTH;
-	public static final int SNEAK = SDLGamepad.SDL_GAMEPAD_BUTTON_EAST;
 	public static final int DROP = SDLGamepad.SDL_GAMEPAD_BUTTON_WEST;
 	public static final int INVENTORY = SDLGamepad.SDL_GAMEPAD_BUTTON_NORTH;
+	/** The same button closes it: in menus EAST is close. */
+	public static final int CHAT = SDLGamepad.SDL_GAMEPAD_BUTTON_EAST;
 
 	public static final int ATTACK = Gamepad.VIRTUAL_RIGHT_TRIGGER;
 	public static final int USE = Gamepad.VIRTUAL_LEFT_TRIGGER;
@@ -22,7 +23,8 @@ public final class Binds {
 	public static final int HOTBAR_PREV = SDLGamepad.SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
 	public static final int HOTBAR_NEXT = SDLGamepad.SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
 
-	public static final int SPRINT = SDLGamepad.SDL_GAMEPAD_BUTTON_LEFT_STICK;
+	/** The left thumb's, not the right's: the right thumb is on the camera. */
+	public static final int SNEAK = SDLGamepad.SDL_GAMEPAD_BUTTON_LEFT_STICK;
 	public static final int SWAP_HANDS = SDLGamepad.SDL_GAMEPAD_BUTTON_RIGHT_STICK;
 
 	public static final int PAUSE = SDLGamepad.SDL_GAMEPAD_BUTTON_START;

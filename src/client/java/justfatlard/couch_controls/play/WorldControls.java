@@ -38,6 +38,14 @@ public final class WorldControls {
 	/** Low: a walk the server is never told about is one it can refuse to let you sprint out of. */
 	private static final float DIGITAL_THRESHOLD = 0.1f;
 
+	/**
+	 * The stick all the way over, within this cone of straight ahead (the cosine of its half
+	 * angle), starts a sprint. Short of the rim, so a worn stick that never quite reaches it still
+	 * can; a full push forward and to one side still counts.
+	 */
+	private static final float SPRINT_PUSH = 0.9f;
+	private static final float SPRINT_CONE = 0.7f;
+
 	private static final Map<KeyMapping, Integer> boundSlots = new IdentityHashMap<>();
 
 	/** Edges wait here for {@code consumeClick}: vanilla drains clicks per tick, the pad is read per frame. */
@@ -81,6 +89,7 @@ public final class WorldControls {
 		boundSlots.put(options.keyShift, Binds.SNEAK);
 		boundSlots.put(options.keyDrop, Binds.DROP);
 		boundSlots.put(options.keyInventory, Binds.INVENTORY);
+		boundSlots.put(options.keyChat, Binds.CHAT);
 		boundSlots.put(options.keyAttack, Binds.ATTACK);
 		boundSlots.put(options.keyUse, Binds.USE);
 		boundSlots.put(options.keySwapOffhand, Binds.SWAP_HANDS);
@@ -190,7 +199,8 @@ public final class WorldControls {
 		// The stick's Y is positive downward; Minecraft's forward is positive away.
 		padMove = new Vec2(-x, -y);
 
-		if (pad.justPressed(Binds.SPRINT)) sprintLatched = true;
+		float push = (float) Math.sqrt(x * x + y * y);
+		if (push >= SPRINT_PUSH && -y >= SPRINT_CONE * push) sprintLatched = true;
 	}
 
 	/**
@@ -250,6 +260,10 @@ public final class WorldControls {
 		if (step == 0) return;
 
 		player.getInventory().setSelectedSlot(Math.floorMod(player.getInventory().getSelectedSlot() + step, 9));
+	}
+
+	public static boolean holdingSprint() {
+		return active && sprintLatched;
 	}
 
 	/** The pad's movement vector, or null when the stick is centred and vanilla's should stand. */

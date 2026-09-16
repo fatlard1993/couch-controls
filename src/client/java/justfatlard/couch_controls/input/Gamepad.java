@@ -234,6 +234,20 @@ public final class Gamepad {
 		return down[slot] && !wasDown[slot];
 	}
 
+	/** Whether the pad was touched this poll: a button going down, or a stick or trigger off rest. */
+	public boolean used() {
+		if (handle == 0L || handedOver) return false;
+		for (int slot = 0; slot < SLOT_COUNT; slot++) {
+			if (down[slot] && !wasDown[slot]) return true;
+		}
+		return leftX != 0f || leftY != 0f || rightX != 0f || rightY != 0f;
+	}
+
+	/** The pad being driven, for asking SDL about it; 0 when there is none. */
+	public long handle() {
+		return handle;
+	}
+
 	public float leftX() { return leftX; }
 	public float leftY() { return leftY; }
 	public float rightX() { return rightX; }

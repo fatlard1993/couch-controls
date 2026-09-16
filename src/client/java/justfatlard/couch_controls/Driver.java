@@ -1,7 +1,9 @@
 package justfatlard.couch_controls;
 
+import justfatlard.couch_controls.input.ControlNames;
 import justfatlard.couch_controls.input.Gamepad;
 import justfatlard.couch_controls.play.WorldControls;
+import justfatlard.couch_controls.ui.HintLink;
 import justfatlard.couch_controls.ui.Navigator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
@@ -17,6 +19,8 @@ public final class Driver {
 
 	private static long lastFrameMs;
 	private static boolean wasConnected;
+	/** The driven pad's names for its controls; null until it is used, and again when it changes. */
+	private static ControlNames names;
 
 	public static Gamepad gamepad() {
 		return GAMEPAD;
@@ -41,13 +45,25 @@ public final class Driver {
 			if (wasConnected) {
 				WorldControls.release();
 				Navigator.reset();
+				HintLink.keyboard();
+				names = null;
 				wasConnected = false;
 			}
 			return;
 		}
 		wasConnected = true;
 		// The next world frame then counts the takeover press as spent.
-		if (GAMEPAD.handedOver()) WorldControls.release();
+		if (GAMEPAD.handedOver()) {
+			WorldControls.release();
+			names = null;
+		}
+
+		// Hints name the pad's buttons from the moment it is touched, until a key or the mouse
+		// is (see HintInputMixin). The names go with the pad, so a new one gets its own.
+		if (GAMEPAD.used()) {
+			if (names == null) names = new ControlNames(GAMEPAD.handle());
+			HintLink.controller(names);
+		}
 
 		if (client.gui.screen() == null) {
 			Navigator.reset();

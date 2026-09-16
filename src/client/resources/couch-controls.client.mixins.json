@@ -8,7 +8,9 @@
 		"KeyboardInputMixin",
 		"LocalPlayerMixin",
 		"MinecraftMixin",
-		"ClientInputAccessor"
+		"ClientInputAccessor",
+		"HintInputMixin",
+		"MouseHintMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

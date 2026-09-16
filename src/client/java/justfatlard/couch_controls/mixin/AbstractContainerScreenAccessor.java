@@ -11,4 +11,7 @@ public interface AbstractContainerScreenAccessor {
 
 	@Accessor("topPos")
 	int couch_controls$getTopPos();
+
+	@Accessor("hoveredSlot")
+	net.minecraft.world.inventory.Slot couch_controls$getHoveredSlot();
 }
