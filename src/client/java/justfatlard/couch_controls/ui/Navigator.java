@@ -3,8 +3,11 @@ package justfatlard.couch_controls.ui;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.Window;
 import justfatlard.couch_controls.CouchControls;
+import justfatlard.couch_controls.CouchSettings;
+import justfatlard.couch_controls.Driver;
 import justfatlard.couch_controls.input.Binds;
 import justfatlard.couch_controls.input.Gamepad;
+import justfatlard.couch_controls.input.PadBinds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -32,6 +35,7 @@ public final class Navigator {
 	private static final float REPEAT_DELAY_SECONDS = 0.35f;
 	private static final float REPEAT_INTERVAL_SECONDS = 0.11f;
 
+	/** At full push and 100% pointer speed. */
 	private static final float FREE_CURSOR_PIXELS_PER_SECOND = 500f;
 
 	/** Presses are dropped this long after a screen opens over the world, so one meant for the world cannot click it. */
@@ -106,7 +110,8 @@ public final class Navigator {
 			follow(client, true);
 			// Opened by the pad to answer something: straight onto the newest link, so a tp
 			// request is B then A.
-			if (screen instanceof ChatScreen && pad.isDown(Binds.CHAT)) seat(client, screen, targets);
+			if (screen instanceof ChatScreen && pad.isDown(PadBinds.slotOf(client.options.keyChat))) seat(client, screen, targets);
+			if (Driver.padInHand()) ScreenKeyboard.screenOpened(screen);
 		} else {
 			follow(client, false);
 		}
@@ -180,8 +185,9 @@ public final class Navigator {
 		if (x == 0f && y == 0f) return;
 
 		Window window = client.getWindow();
-		cursorX = Math.clamp(cursorX + x * FREE_CURSOR_PIXELS_PER_SECOND * frameSeconds, 0, window.getGuiScaledWidth());
-		cursorY = Math.clamp(cursorY + y * FREE_CURSOR_PIXELS_PER_SECOND * frameSeconds, 0, window.getGuiScaledHeight());
+		float speed = FREE_CURSOR_PIXELS_PER_SECOND * CouchSettings.fraction(CouchSettings.Number.POINTER_SPEED) * frameSeconds;
+		cursorX = Math.clamp(cursorX + x * speed, 0, window.getGuiScaledWidth());
+		cursorY = Math.clamp(cursorY + y * speed, 0, window.getGuiScaledHeight());
 		moved = true;
 	}
 
@@ -257,6 +263,7 @@ public final class Navigator {
 			} else {
 				click(screen, InputConstants.MOUSE_BUTTON_LEFT, 0);
 			}
+			ScreenKeyboard.clicked(screen, cursorX, cursorY);
 		}
 		if (pad.justPressed(Binds.RIGHT_CLICK)) {
 			click(screen, InputConstants.MOUSE_BUTTON_RIGHT, 0);

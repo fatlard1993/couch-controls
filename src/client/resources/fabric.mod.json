@@ -29,6 +29,9 @@
 		"java": ">=25",
 		"fabric-api": "${fabricApiVersion}"
 	},
+	"breaks": {
+		"pandorical": "<15.0.0"
+	},
 	"suggests": {
 		"pandorical": "*"
 	}

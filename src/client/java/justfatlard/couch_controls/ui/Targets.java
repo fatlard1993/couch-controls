@@ -2,8 +2,12 @@ package justfatlard.couch_controls.ui;
 
 import justfatlard.couch_controls.CouchControls;
 import justfatlard.couch_controls.mixin.AbstractContainerScreenAccessor;
+import net.minecraft.client.gui.components.AbstractSelectionList;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -58,8 +62,34 @@ public final class Targets {
 	private static void collectWidgets(Screen screen, List<NavTarget> into) {
 		for (GuiEventListener child : screen.children()) {
 			if (child instanceof AbstractWidget widget && widget.visible && widget.isActive()) {
+				if (child instanceof AbstractSelectionList<?> list && collectRows(list, into)) continue;
 				into.add(NavTarget.ofBounds(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight()));
 			}
 		}
+	}
+
+	/**
+	 * The buttons in a list's rows, such as the key binds screen's, in place of the list itself;
+	 * false when its rows hold none, and the list stands as one target. Only whole rows count:
+	 * a row's widgets are placed when it is drawn, so one scrolled out of view still reports
+	 * where it last was. Sliders are left to the free pointer, since a click lands the value
+	 * wherever the pointer is.
+	 */
+	private static boolean collectRows(AbstractSelectionList<?> list, List<NavTarget> into) {
+		boolean found = false;
+		// Entry is protected; LayoutElement is how a row's place is read from outside.
+		for (Object row : list.children()) {
+			if (!(row instanceof ContainerEventHandler container) || !(row instanceof LayoutElement place)) continue;
+			if (place.getY() < list.getY() || place.getY() + place.getHeight() > list.getBottom()) continue;
+
+			for (GuiEventListener child : container.children()) {
+				if (child instanceof AbstractWidget widget && widget.visible && widget.isActive()
+						&& !(widget instanceof AbstractSliderButton)) {
+					into.add(NavTarget.ofBounds(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight()));
+					found = true;
+				}
+			}
+		}
+		return found;
 	}
 }

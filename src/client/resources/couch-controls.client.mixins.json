@@ -10,7 +10,13 @@
 		"MinecraftMixin",
 		"ClientInputAccessor",
 		"HintInputMixin",
-		"MouseHintMixin"
+		"MouseHintMixin",
+		"KeyBindsListMixin",
+		"KeyBindsScreenMixin",
+		"KeyEntryMixin",
+		"ExplosionRumbleMixin",
+		"FishingHookAccessor",
+		"GameModeRumbleMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -1,9 +1,10 @@
 package justfatlard.couch_controls.play;
 
-import justfatlard.couch_controls.CouchControls;
+import justfatlard.couch_controls.CouchSettings;
 import justfatlard.couch_controls.Driver;
 import justfatlard.couch_controls.input.Binds;
 import justfatlard.couch_controls.input.Gamepad;
+import justfatlard.couch_controls.input.PadBinds;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -26,7 +27,10 @@ import java.util.Set;
 public final class WorldControls {
 	private WorldControls() {}
 
-	/** Deliberately slow: a camera too fast is unusable, one too slow merely annoying. */
+	/**
+	 * At full push and 100% look speed. Deliberately slow: a camera too fast is unusable, one too
+	 * slow merely annoying.
+	 */
 	private static final float LOOK_DEGREES_PER_SECOND = 220f;
 
 	/** {@code Entity.turn} multiplies both arguments by this before applying them. */
@@ -47,6 +51,9 @@ public final class WorldControls {
 	private static final float SPRINT_CONE = 0.7f;
 
 	private static final Map<KeyMapping, Integer> boundSlots = new IdentityHashMap<>();
+	/** The {@link PadBinds#revision} {@link #boundSlots} was built from. */
+	private static int boundRevision = -1;
+	private static Options options;
 
 	/** Edges wait here for {@code consumeClick}: vanilla drains clicks per tick, the pad is read per frame. */
 	private static final Map<KeyMapping, Integer> pendingClicks = new IdentityHashMap<>();
@@ -80,20 +87,20 @@ public final class WorldControls {
 		return pad.isDown(slot) && !spent.contains(slot);
 	}
 
-	private static void bind(Options options) {
-		if (!boundSlots.isEmpty()) return;
+	private static void bind(Options from) {
+		if (boundRevision == PadBinds.revision() && options == from) return;
+		boundRevision = PadBinds.revision();
+		options = from;
 
-		if (CouchControls.PANDORICAL_LOADED) PandoricalKeybinds.bind(boundSlots);
+		boundSlots.clear();
+		for (KeyMapping mapping : from.keyMappings) {
+			int slot = PadBinds.slotOf(mapping);
+			if (slot != PadBinds.NONE && PadBinds.reachable(mapping)) boundSlots.put(mapping, slot);
+		}
+	}
 
-		boundSlots.put(options.keyJump, Binds.JUMP);
-		boundSlots.put(options.keyShift, Binds.SNEAK);
-		boundSlots.put(options.keyDrop, Binds.DROP);
-		boundSlots.put(options.keyInventory, Binds.INVENTORY);
-		boundSlots.put(options.keyChat, Binds.CHAT);
-		boundSlots.put(options.keyAttack, Binds.ATTACK);
-		boundSlots.put(options.keyUse, Binds.USE);
-		boundSlots.put(options.keySwapOffhand, Binds.SWAP_HANDS);
-		boundSlots.put(options.keyPlayerList, Binds.PLAYER_LIST);
+	private static int slotOf(KeyMapping mapping) {
+		return boundSlots.getOrDefault(mapping, PadBinds.NONE);
 	}
 
 	/** Called once per frame while no screen is open. */
@@ -106,23 +113,24 @@ public final class WorldControls {
 		active = true;
 
 		sneakToggles = client.options.toggleCrouch().get();
-		if (sneakToggles && pad.justPressed(Binds.SNEAK)) client.options.keyShift.setDown(true);
+		if (sneakToggles && pad.justPressed(slotOf(client.options.keyShift))) client.options.keyShift.setDown(true);
 
+		int useSlot = slotOf(client.options.keyUse);
 		rodInHand = client.player != null && usesRod(client.player);
 		boolean bobberOut = rodInHand && client.player.fishing != null;
 		if (bobberOut && !reeling) {
-			reelArmed = !pad.isDown(Binds.USE);
+			reelArmed = !pad.isDown(useSlot);
 			reelHeld = false;
 		}
 		reeling = bobberOut;
 
 		for (Map.Entry<KeyMapping, Integer> entry : boundSlots.entrySet()) {
-			if (reeling && entry.getValue() == Binds.USE) continue;
+			if (reeling && entry.getKey() == client.options.keyUse) continue;
 			if (pad.justPressed(entry.getValue())) {
 				pendingClicks.merge(entry.getKey(), 1, Integer::sum);
 			}
 		}
-		if (reeling) applyReel(pad, client.options, frameSeconds);
+		if (reeling) applyReel(pad, useSlot, client.options, frameSeconds);
 		else reelHeld = false;
 
 		// Pause has no KeyMapping; vanilla reads Escape directly. Returning keeps
@@ -140,7 +148,6 @@ public final class WorldControls {
 
 		applyLook(pad, player, frameSeconds);
 		applyMovement(pad, player);
-		applyHotbar(pad, player);
 	}
 
 	/** Whether use reaches a rod: in the main hand, or in the offhand behind an empty main hand. */
@@ -151,8 +158,8 @@ public final class WorldControls {
 	}
 
 	/** One click on the squeeze, then a run whose rate follows the pull. */
-	private static void applyReel(Gamepad pad, Options options, float frameSeconds) {
-		if (!pad.isDown(Binds.USE)) {
+	private static void applyReel(Gamepad pad, int useSlot, Options options, float frameSeconds) {
+		if (!pad.isDown(useSlot)) {
 			reelArmed = true;
 			reelHeld = false;
 			return;
@@ -165,7 +172,10 @@ public final class WorldControls {
 			return;
 		}
 		float press = Gamepad.triggerPress();
-		float pull = Math.clamp((pad.leftTrigger() - press) / (1f - press), 0f, 1f);
+		float pull = useSlot == Gamepad.VIRTUAL_LEFT_TRIGGER ? pad.leftTrigger()
+			: useSlot == Gamepad.VIRTUAL_RIGHT_TRIGGER ? pad.rightTrigger()
+			: 1f;
+		pull = Math.clamp((pull - press) / (1f - press), 0f, 1f);
 		float rate = REEL_MIN_CLICKS_PER_SECOND + pull * (REEL_MAX_CLICKS_PER_SECOND - REEL_MIN_CLICKS_PER_SECOND);
 		reelDue += frameSeconds * rate;
 		while (reelDue >= 1f) {
@@ -180,8 +190,10 @@ public final class WorldControls {
 		if (Math.abs(x) < LOOK_THRESHOLD && Math.abs(y) < LOOK_THRESHOLD) return;
 
 		// Squared, sign kept: most of the stick's travel buys small corrections.
-		float yaw = x * Math.abs(x) * LOOK_DEGREES_PER_SECOND * frameSeconds;
-		float pitch = y * Math.abs(y) * LOOK_DEGREES_PER_SECOND * frameSeconds;
+		float speed = LOOK_DEGREES_PER_SECOND * CouchSettings.fraction(CouchSettings.Number.LOOK_SPEED) * frameSeconds;
+		float yaw = x * Math.abs(x) * speed;
+		float pitch = y * Math.abs(y) * speed;
+		if (CouchSettings.get(CouchSettings.Toggle.INVERT_LOOK)) pitch = -pitch;
 
 		player.turn(yaw / TURN_SCALE, pitch / TURN_SCALE);
 	}
@@ -253,15 +265,6 @@ public final class WorldControls {
 		return true;
 	}
 
-	private static void applyHotbar(Gamepad pad, LocalPlayer player) {
-		int step = 0;
-		if (pad.justPressed(Binds.HOTBAR_NEXT)) step++;
-		if (pad.justPressed(Binds.HOTBAR_PREV)) step--;
-		if (step == 0) return;
-
-		player.getInventory().setSelectedSlot(Math.floorMod(player.getInventory().getSelectedSlot() + step, 9));
-	}
-
 	public static boolean holdingSprint() {
 		return active && sprintLatched;
 	}
@@ -278,8 +281,8 @@ public final class WorldControls {
 		if (slot == null) return false;
 		// A rod is used by the click, never the hold: vanilla's held-use repeat would cast and
 		// retrieve by turns, and while reeling would pile onto the cadence.
-		if (rodInHand && slot == Binds.USE) return false;
-		if (sneakToggles && slot == Binds.SNEAK) return false;
+		if (rodInHand && mapping == options.keyUse) return false;
+		if (sneakToggles && mapping == options.keyShift) return false;
 		return held(Driver.gamepad(), slot);
 	}
 

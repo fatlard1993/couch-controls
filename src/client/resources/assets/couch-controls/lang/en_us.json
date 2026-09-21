@@ -1,0 +1,7 @@
+{
+	"key.couch-controls.hotbar_previous": "Previous Hotbar Slot",
+	"key.couch-controls.hotbar_next": "Next Hotbar Slot",
+	"couch-controls.controls.pad_narration": "%s on the controller: %s",
+	"couch-controls.controls.listening": "Press a controller button for this. Start clears it.",
+	"couch-controls.controls.keyboard_only": "The game reads this one straight from the keyboard, where a controller cannot reach it."
+}

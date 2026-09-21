@@ -34,7 +34,7 @@ Pandorical screens build their UI from server-sent component definitions that ar
 
 Regions are geometry only, with no activate hook, and that is the point: one mechanism drives vanilla slots, vanilla widgets and Pandorical components alike.
 
-The other half is keybinds. Suite mods declare their own keys through Pandorical's pooled slots rather than shipping client code, so those keys are ordinary `KeyMapping`s that nothing on a pad reaches by default. The d-pad drives pool slots 1-4, which is how poopsmith's poop key (slot 1, `G` on a keyboard) becomes d-pad down. The press travels to the server down Pandorical's existing path; there is no extra protocol.
+The other half is keybinds. Suite mods declare their own keys through Pandorical's pooled slots rather than shipping client code, so those keys are ordinary `KeyMapping`s that nothing on a pad reaches by default. By default the d-pad drives pool slots 1-4, which is how poopsmith's poop key (slot 1, `G` on a keyboard) becomes d-pad down. The press travels to the server down Pandorical's existing path; there is no extra protocol.
 
 Because Pandorical is the platform every suite screen is built on, this covers the suite by construction — and `PandoricalContainerScreen` extends the vanilla container screen, so its item slots were already covered by the vanilla path.
 
@@ -72,7 +72,7 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | South (A) | Jump |
 | West (X) | Drop item |
 | North (Y) | Open inventory |
-| Shoulders | Cycle hotbar |
+| Shoulders | Previous / next hotbar slot |
 | Left stick all the way forward | Sprint (latches until the stick recentres; afloat in deep water, it holds through the surface and dives at the next dip) |
 | Left stick click | Sneak (a press toggles it when the Sneak option is set to Toggle) |
 | East (B) | Chat, with the pointer on the newest link: A clicks it, so a teleport or trade request is B then A |
@@ -100,13 +100,88 @@ sink, let go to drop.
 | Start | Close |
 | Shoulders | Scroll (bundle contents, long lists) |
 
-Bindings are hardcoded for now. A rebinding UI is a real want, but it is a screen you would have to navigate before you can navigate screens, and the layout has to be usable before any of that exists.
+## Changing the layout
+
+The world layout above is the default. **Options > Controls > Key Binds** has a controller column
+beside the keyboard one, and every row in it can take a pad control: vanilla's actions, other mods'
+keys, and Pandorical's pooled slots alike. A pad control can drive anything the game reads as a
+held or clicked key, so binding one to *Toggle Perspective* or *Hotbar Slot 3* simply works.
+
+Click a row's controller button (with A, or the mouse) and press the control you want. **Start
+clears it**, the way Escape clears a key, and a click or a key press stops waiting without changing
+anything. Reset puts the row back to its defaults, pad and keyboard both, and Reset Keys does the
+same for every row. A control on two actions is marked the way a keyboard clash is, and both fire.
+
+Hotbar stepping appears as two rows of its own under Inventory, *Previous Hotbar Slot* and *Next
+Hotbar Slot*, unbound on the keyboard until given a key.
+
+Some rows show `-`: screenshot, fullscreen, friends and the debug keys are read straight off the
+keyboard event, so no pad control can reach them.
+
+Fixed, and not in the list: the stick controls (move, look, sprint), Start as pause, and the whole
+menu layout. The menu layout is what gets you into this screen in the first place, so it is not
+something one wrong binding should be able to take away.
+
+Changes are saved to `config/couch-controls/pad-binds.properties`, only where they differ from
+the defaults.
+
+## Typing
+
+Clicking into a text box with the pad (A on chat's input, an anvil's name, a book's page, a command
+block, the creative search) opens an on-screen keyboard; a sign opens it as soon as the sign is
+placed, and A anywhere on the sign that is not the Done button brings it back. It sits above the
+text when the text is low on the screen, as chat's is, and below it otherwise.
+
+| Control | Action |
+|---|---|
+| Left stick / D-pad | Move between keys (across the edges, as a phone's does) |
+| South (A) | Press the key |
+| West (X) | Delete (hold to keep deleting) |
+| North (Y) | Space |
+| Left stick click | Shift, for one letter |
+| Shoulders | Move the text cursor |
+| Start | Enter (sends chat; next line on a sign) |
+| East (B) | Close the keyboard, leaving the screen open |
+
+`?123` swaps in numbers and symbols. The keys go to the screen exactly as a keyboard's do, so what
+the text box accepts is up to the text box. Touching the real keyboard or mouse closes it.
+
+## Rumble
+
+The pad shakes when you are hurt (harder the more it took, and a long one when it kills you), when
+a hit lands, when a block breaks, when something bites your line, and when an explosion goes off
+near you, fading with distance. The bite is vanilla's own bite flag, which Minedew Fishing sets too.
+
+Only while the pad is the hands in use: a key or a mouse button hands the game back to the keyboard
+and the pad goes quiet until it is touched again, so a pad left charging on the shelf never buzzes.
+
+Rumble can be switched off and its strength set in the settings below; changing either gives a
+sample shake so it can be judged by hand.
+
+## Settings
+
+On Couch Controls' page in Pandorical's mod menu, and in `config/couch-controls/settings.properties`,
+which works with or without Pandorical. The menu writes the file, so the two never disagree; the
+page needs a Pandorical recent enough to have client settings.
+
+| Setting | File key | Default | Range |
+|---|---|---|---|
+| Look speed | `look_speed` | 100% (220 degrees a second at full push) | 25-300% |
+| Invert look | `invert_look` | off | |
+| Pointer speed, in menus | `pointer_speed` | 100% (500 GUI pixels a second) | 25-300% |
+| Left stick deadzone | `left_deadzone` | 18% of the stick's travel | 4-40% |
+| Right stick deadzone | `right_deadzone` | 18% of the stick's travel | 4-40% |
+| Rumble | `rumble` | on | |
+| Rumble strength | `rumble_strength` | 100% | 10-100% |
+
+Each stick has its own deadzone, since sticks wear unevenly and the camera shows drift that walking
+hides. It is radial, and the stick past it is rescaled, so full push is still full speed whatever
+the deadzone. A worn stick that drifts wants it higher; a new one can go lower for finer aim. It stops at 40% because a pad waiting to take over needs a half push, and a
+resting stick must never reach that.
 
 ## Known gaps
 
-- **Text entry.** Typing in chat, signs, anvils and command blocks still needs a keyboard; chat can be opened and its links clicked from the pad. Landing on a text field focuses it; typing into it is a separate problem that wants an on-screen keyboard.
-- **No rumble yet.** SDL exposes it and `Gamepad.rumble` is wired, but nothing calls it.
-- **No dead zone, sensitivity or binding configuration.** The tuning constants are hardcoded in the source.
+- **Text boxes that are not vanilla's.** The on-screen keyboard types into vanilla's text boxes and anything built on them; a mod that draws its own text entry, Pandorical's server-declared screens included, still needs a keyboard.
 - **Creative inventory tabs** are widgets and so are reachable, but the tab strip navigates awkwardly.
 
 ## Development

@@ -2,9 +2,12 @@ package justfatlard.couch_controls;
 
 import justfatlard.couch_controls.input.ControlNames;
 import justfatlard.couch_controls.input.Gamepad;
+import justfatlard.couch_controls.input.PadBinds;
 import justfatlard.couch_controls.play.WorldControls;
 import justfatlard.couch_controls.ui.HintLink;
 import justfatlard.couch_controls.ui.Navigator;
+import justfatlard.couch_controls.ui.PadRebind;
+import justfatlard.couch_controls.ui.ScreenKeyboard;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 
@@ -19,11 +22,37 @@ public final class Driver {
 
 	private static long lastFrameMs;
 	private static boolean wasConnected;
-	/** The driven pad's names for its controls; null until it is used, and again when it changes. */
+	/** Whether the pad was touched more recently than a key or a mouse button. */
+	private static boolean padInHand;
+	/** The driven pad's names for its controls; null until asked for, and again when the pad or a binding changes. */
 	private static ControlNames names;
+	private static ControlNames noPadNames;
+	/** A new names object is what makes Pandorical re-read its hints, so a moved binding needs one. */
+	private static int namedRevision;
 
 	public static Gamepad gamepad() {
 		return GAMEPAD;
+	}
+
+	public static boolean padInHand() {
+		return padInHand && GAMEPAD.isConnected();
+	}
+
+	/** A key or a mouse button went down: the hands are off the pad. */
+	public static void keysInHand() {
+		padInHand = false;
+		HintLink.keyboard();
+		ScreenKeyboard.close();
+	}
+
+	/** The driven pad's names, or an Xbox pad's while none is connected. */
+	public static ControlNames controlNames() {
+		if (!GAMEPAD.isConnected()) {
+			if (noPadNames == null) noPadNames = new ControlNames(0L);
+			return noPadNames;
+		}
+		if (names == null) names = new ControlNames(GAMEPAD.handle());
+		return names;
 	}
 
 	public static void init() {
@@ -58,11 +87,15 @@ public final class Driver {
 			names = null;
 		}
 
+		if (namedRevision != PadBinds.revision()) {
+			namedRevision = PadBinds.revision();
+			names = null;
+		}
 		// Hints name the pad's buttons from the moment it is touched, until a key or the mouse
 		// is (see HintInputMixin). The names go with the pad, so a new one gets its own.
 		if (GAMEPAD.used()) {
-			if (names == null) names = new ControlNames(GAMEPAD.handle());
-			HintLink.controller(names);
+			padInHand = true;
+			HintLink.controller(controlNames());
 		}
 
 		if (client.gui.screen() == null) {
@@ -72,7 +105,9 @@ public final class Driver {
 			// Every frame, not only when the screen opens: mixins keep reading world state
 			// that nothing recomputes while a screen is up.
 			WorldControls.release();
-			Navigator.onFrame(GAMEPAD, client, frameSeconds);
+			if (!PadRebind.onFrame(GAMEPAD, client) && !ScreenKeyboard.onFrame(GAMEPAD, client, frameSeconds)) {
+				Navigator.onFrame(GAMEPAD, client, frameSeconds);
+			}
 		}
 	}
 }

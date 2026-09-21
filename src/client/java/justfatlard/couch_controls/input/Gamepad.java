@@ -1,6 +1,7 @@
 package justfatlard.couch_controls.input;
 
 import justfatlard.couch_controls.CouchControls;
+import justfatlard.couch_controls.CouchSettings;
 import org.lwjgl.sdl.SDLGamepad;
 import org.lwjgl.sdl.SDLInit;
 
@@ -12,8 +13,14 @@ import java.util.List;
 public final class Gamepad {
 	private static final float AXIS_MAX = 32767f;
 
-	/** Radial, and sized for a worn stick: a new one loses nothing to it. */
-	private static final float STICK_DEADZONE = 0.18f;
+	/** Radial; the player's setting, and by default sized for a worn stick: a new one loses nothing to it. */
+	private static float leftDeadzone() {
+		return CouchSettings.fraction(CouchSettings.Number.LEFT_DEADZONE);
+	}
+
+	private static float rightDeadzone() {
+		return CouchSettings.fraction(CouchSettings.Number.RIGHT_DEADZONE);
+	}
 
 	/** Analog triggers act as buttons: down past the press edge, up again only under the release edge. */
 	private static final float TRIGGER_PRESS = 0.4f;
@@ -31,7 +38,7 @@ public final class Gamepad {
 
 	public static final int VIRTUAL_LEFT_TRIGGER = BUTTON_COUNT;
 	public static final int VIRTUAL_RIGHT_TRIGGER = BUTTON_COUNT + 1;
-	private static final int SLOT_COUNT = BUTTON_COUNT + 2;
+	public static final int SLOT_COUNT = BUTTON_COUNT + 2;
 
 	private boolean subsystemReady;
 	/** Every connected pad, held open, because a pad must be open to be read and any of them may be the one in use. */
@@ -93,11 +100,11 @@ public final class Gamepad {
 		float rawRightX = raw(SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTX);
 		float rawRightY = raw(SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTY);
 
-		float leftScale = deadzoneScale(rawLeftX, rawLeftY);
+		float leftScale = deadzoneScale(rawLeftX, rawLeftY, leftDeadzone());
 		leftX = rawLeftX * leftScale;
 		leftY = rawLeftY * leftScale;
 
-		float rightScale = deadzoneScale(rawRightX, rawRightY);
+		float rightScale = deadzoneScale(rawRightX, rawRightY, rightDeadzone());
 		rightX = rawRightX * rightScale;
 		rightY = rawRightY * rightScale;
 
@@ -171,8 +178,8 @@ public final class Gamepad {
 
 	private boolean inUse(long candidate) {
 		return anyButtonOrTrigger(candidate)
-			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTX, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTY, STICK_DEADZONE)
-			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTX, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTY, STICK_DEADZONE);
+			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTX, SDLGamepad.SDL_GAMEPAD_AXIS_LEFTY, leftDeadzone())
+			|| deflected(candidate, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTX, SDLGamepad.SDL_GAMEPAD_AXIS_RIGHTY, rightDeadzone());
 	}
 
 	private boolean wantsControl(long candidate) {
@@ -209,11 +216,11 @@ public final class Gamepad {
 	}
 
 	/** Rescales a stick so the deadzone edge reads as zero and full deflection still reads as one. */
-	private static float deadzoneScale(float x, float y) {
+	private static float deadzoneScale(float x, float y, float deadzone) {
 		float magnitude = (float) Math.sqrt(x * x + y * y);
-		if (magnitude <= STICK_DEADZONE) return 0f;
+		if (magnitude <= deadzone) return 0f;
 
-		float adjusted = (magnitude - STICK_DEADZONE) / (1f - STICK_DEADZONE);
+		float adjusted = (magnitude - deadzone) / (1f - deadzone);
 		return Math.min(adjusted, 1f) / magnitude;
 	}
 
@@ -225,13 +232,22 @@ public final class Gamepad {
 		return handedOver;
 	}
 
+	/** False for {@link PadBinds#NONE}, so an unbound action reads as never held. */
 	public boolean isDown(int slot) {
-		return down[slot];
+		return slot >= 0 && down[slot];
 	}
 
 	/** True on the frame a button goes down, and not again until it is released. */
 	public boolean justPressed(int slot) {
-		return down[slot] && !wasDown[slot];
+		return slot >= 0 && down[slot] && !wasDown[slot];
+	}
+
+	/** The first control to go down this poll, or {@link PadBinds#NONE}. */
+	public int firstPressed() {
+		for (int slot = 0; slot < SLOT_COUNT; slot++) {
+			if (justPressed(slot)) return slot;
+		}
+		return PadBinds.NONE;
 	}
 
 	/** Whether the pad was touched this poll: a button going down, or a stick or trigger off rest. */

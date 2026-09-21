@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "couch-controls-gametest",
+	"version": "1.0.0",
+	"name": "Couch Controls smoke test",
+	"description": "Loads the mod, joins a world, and fails if anything on the way threw.",
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"justfatlard.couch_controls.gametest.SmokeTest"
+		]
+	},
+	"depends": {
+		"couch-controls": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}
