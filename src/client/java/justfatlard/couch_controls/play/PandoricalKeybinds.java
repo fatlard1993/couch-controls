@@ -14,6 +14,10 @@ public final class PandoricalKeybinds {
 	/**
 	 * Indexed by pool index. Index 0 is the player-facing slot 1, the one servers claim today,
 	 * so it gets down, the easiest to hit without looking.
+	 *
+	 * <p>Index 2 is Pandorical's own notice tray, which is pre-bound to N and so always lands
+	 * there whatever else is installed. It is the one entry here that names a fixed feature rather
+	 * than a slot a server might claim, and the reason the tray is reachable from a pad at all.
 	 */
 	private static final int[] BUTTON_FOR_POOL_INDEX = {
 		SDLGamepad.SDL_GAMEPAD_BUTTON_DPAD_DOWN, SDLGamepad.SDL_GAMEPAD_BUTTON_DPAD_LEFT,
@@ -31,6 +35,8 @@ public final class PandoricalKeybinds {
 		for (int index = 0; index < BUTTON_FOR_POOL_INDEX.length; index++) {
 			KeyMapping mapping = KeybindManager.poolMapping(index);
 			// Unclaimed slots too: a server can claim one on any join, and the mapping is stable.
+			// Slot 2 is never unclaimed in practice - the notice tray holds it - but it goes
+			// through the same path, because a pool index is a pool index.
 			if (mapping != null) into.put(mapping.getName(), BUTTON_FOR_POOL_INDEX[index]);
 		}
 	}
