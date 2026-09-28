@@ -12,6 +12,12 @@
       "Pandorical's notice badge names your button, not a key."
     ],
     "1.1.4": [
+      "Every action takes a pad control now, under Options > Controls > Key Binds: vanilla's, other mods', and Pandorical's slots alike.",
+      "Start clears a binding the way Escape clears a key, and what you change is kept.",
+      "Stepping through the hotbar is an action of its own, so the shoulders can do what only the scroll wheel could.",
+      "The pad shakes when you are hurt, land a hit, break a block, get a bite, or an explosion goes off near you.",
+      "It only shakes while the pad is the hands in use, so one left charging on the shelf stays quiet.",
+      "A settings page in Pandorical's mod menu: look and pointer speed, a deadzone for each stick, inverted look, and rumble with its strength.",
       "Holding the stick forward sprints without the view pulsing.",
       "Vanilla ended the sprint on every bump, so the wider view flickered all the way up a hill.",
       "Sneak moves to the stick click.",
