@@ -18,6 +18,8 @@
       "The pad shakes when you are hurt, land a hit, break a block, get a bite, or an explosion goes off near you.",
       "It only shakes while the pad is the hands in use, so one left charging on the shelf stays quiet.",
       "A settings page in Pandorical's mod menu: look and pointer speed, a deadzone for each stick, inverted look, and rumble with its strength.",
+      "Clicking into a text box brings up an on-screen keyboard: chat, an anvil, a book, a command block, the creative search.",
+      "A sign opens it the moment the sign is placed, so a pad can write one without reaching for the keys.",
       "Holding the stick forward sprints without the view pulsing.",
       "Vanilla ended the sprint on every bump, so the wider view flickered all the way up a hill.",
       "Sneak moves to the stick click.",
