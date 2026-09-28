@@ -5,7 +5,6 @@ import justfatlard.couch_controls.play.WorldControls;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec2;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
@@ -16,11 +15,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  */
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerMixin {
-	@Shadow
-	private boolean isSprintingPossible(boolean allowedInShallowWater) {
-		throw new AssertionError();
-	}
-
 	@ModifyVariable(method = "modifyInput", at = @At("HEAD"), argsOnly = true)
 	private Vec2 couch_controls$analogMovement(Vec2 original) {
 		Vec2 fromPad = WorldControls.moveVector();
@@ -38,18 +32,4 @@ public abstract class LocalPlayerMixin {
 		return collided && !WorldControls.holdingSprint();
 	}
 
-	/**
-	 * Nor by the eyes breaking the surface while afloat. Vanilla starts a sprint the moment the
-	 * eyes dip under and stops it the moment they come back up, until the swim itself begins; a
-	 * held sprint started again on every bob, and the view pulsed wider and back. Kept through
-	 * the surface, the next dip is a dive. Wading on the bottom still stops it, as it does
-	 * vanilla's.
-	 */
-	@ModifyExpressionValue(method = "shouldStopRunSprinting",
-		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;isSprintingPossible(Z)Z"))
-	private boolean couch_controls$keepSprintAfloat(boolean possible) {
-		if (possible || !WorldControls.holdingSprint()) return possible;
-		LocalPlayer self = (LocalPlayer) (Object) this;
-		return self.isInWater() && !self.onGround() && isSprintingPossible(true);
-	}
 }

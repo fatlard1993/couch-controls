@@ -211,6 +211,19 @@ public final class WorldControls {
 		// The stick's Y is positive downward; Minecraft's forward is positive away.
 		padMove = new Vec2(-x, -y);
 
+		// Not in water. Sprinting while swimming is the swim itself - the game puts you prone
+		// the moment both are true - so a stick pushed forward to cross a river was an order to
+		// dive, held for as long as you were moving. Crossing water and swimming down it are
+		// different things, and the stick only says the first.
+		//
+		// The sprint button still says the second, exactly as the keyboard does: forward to
+		// wade, sprint to swim. An existing latch is dropped on entry rather than carried in,
+		// so running off a bank does not take the dive with it.
+		if (player.isInWater()) {
+			sprintLatched = false;
+			return;
+		}
+
 		float push = (float) Math.sqrt(x * x + y * y);
 		if (push >= SPRINT_PUSH && -y >= SPRINT_CONE * push) sprintLatched = true;
 	}

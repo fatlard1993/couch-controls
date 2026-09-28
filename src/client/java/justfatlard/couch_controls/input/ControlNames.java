@@ -109,6 +109,9 @@ public final class ControlNames implements Function<String, String> {
 	}
 
 	/** Null when the action is unbound, so the hint keeps its word rather than naming a wrong control. */
+	/** The pool slot Pandorical reserves for its notice tray; see PandoricalKeybinds. */
+	private static final int NOTICES_SLOT = 2;
+
 	private String bound(String control) {
 		Options options = Minecraft.getInstance().options;
 		KeyMapping mapping = switch (control) {
@@ -118,6 +121,9 @@ public final class ControlNames implements Function<String, String> {
 			case "inventory" -> options.keyInventory;
 			case "use" -> options.keyUse;
 			case "attack" -> options.keyAttack;
+			// Pandorical's notice tray, which holds pool slot 2 by contract: that slot is pre-bound
+			// to N precisely so it stops moving, which is also what makes its d-pad button fixed.
+			case "notices" -> justfatlard.pandorical.client.keybind.KeybindManager.poolMapping(NOTICES_SLOT);
 			case "hotbar_prev" -> HotbarCycle.previous();
 			case "hotbar_next" -> HotbarCycle.next();
 			case "sneak" -> options.keyShift;

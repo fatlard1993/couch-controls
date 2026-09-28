@@ -1,31 +1,38 @@
 {
-	"overview": [
-		"Native gamepad support for Minecraft Java: analog movement, stick camera, and menu navigation that steps between real slots and buttons instead of shoving a pointer at them.",
-		"Client-side only. The server neither needs it nor knows about it."
-	],
-	"versions": {
-		"1.1.4": [
-			"Holding the stick forward sprints without the view pulsing.",
-			"Vanilla ended the sprint on every bump, so the wider view flickered all the way up a hill.",
-			"Sneak moves to the stick click.",
-			"B opens chat with the pointer on the newest link, so accepting a teleport is B then A.",
-			"Button hints name the buttons printed on your own pad."
-		],
-		"1.1.3": [
-			"A button held over from a closing screen no longer jumps or sneaks.",
-			"B and Start close only what Escape would, and Y closes the inventory it opened.",
-			"A press just after a screen opens over the world is ignored.",
-			"Stick click actually sprints, and an offhand rod reels.",
-			"The shoulders scroll a list rather than the slot under the cursor.",
-			"Triggers let go a little below where they press."
-		],
-		"1.1.0": [
-			"The left trigger reels a fish by how far it is pulled."
-		],
-		"1.0.1": [
-			"Analog movement, stick camera, and menu navigation that snaps to what you meant.",
-			"D-pad keybinds.",
-			"Boat steering answers how far the stick is pushed, instead of turning as hard as it can."
-		]
-	}
+  "overview": [
+    "Native gamepad support for Minecraft Java: analog movement, stick camera, and menu navigation that steps between real slots and buttons instead of shoving a pointer at them.",
+    "Client-side only. The server neither needs it nor knows about it."
+  ],
+  "versions": {
+    "1.2.1": [
+      "The stick no longer starts a sprint in water, so crossing one does not put you face down.",
+      "The sprint button still swims, the way the keyboard does."
+    ],
+    "1.2.0": [
+      "Pandorical's notice badge names your button, not a key."
+    ],
+    "1.1.4": [
+      "Holding the stick forward sprints without the view pulsing.",
+      "Vanilla ended the sprint on every bump, so the wider view flickered all the way up a hill.",
+      "Sneak moves to the stick click.",
+      "B opens chat with the pointer on the newest link, so accepting a teleport is B then A.",
+      "Button hints name the buttons printed on your own pad."
+    ],
+    "1.1.3": [
+      "A button held over from a closing screen no longer jumps or sneaks.",
+      "B and Start close only what Escape would, and Y closes the inventory it opened.",
+      "A press just after a screen opens over the world is ignored.",
+      "Stick click actually sprints, and an offhand rod reels.",
+      "The shoulders scroll a list rather than the slot under the cursor.",
+      "Triggers let go a little below where they press."
+    ],
+    "1.1.0": [
+      "The left trigger reels a fish by how far it is pulled."
+    ],
+    "1.0.1": [
+      "Analog movement, stick camera, and menu navigation that snaps to what you meant.",
+      "D-pad keybinds.",
+      "Boat steering answers how far the stick is pushed, instead of turning as hard as it can."
+    ]
+  }
 }
