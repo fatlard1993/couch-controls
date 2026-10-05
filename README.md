@@ -42,20 +42,11 @@ The integration is compiled against the real interface, **not** reflection. The 
 
 ## Which pad, when there are two
 
-A controller left plugged in to charge is still a controller as far as SDL is concerned, and it may
-well be the first one listed. Binding blind to that one looks *exactly* like working - the log says
-a controller connected, and nothing responds.
+A controller left plugged in to charge is still a controller as far as SDL is concerned, and it may well be the first one listed. Binding blind to that one looks *exactly* like working - the log says a controller connected, and nothing responds.
 
-So the pad in charge is the pad being used. Every connected pad is held open; the first one found
-takes control at startup, since nobody is touching anything yet, and keeps it for as long as it is
-being used. Once it has been idle a couple of seconds, any other pad gets it by asking: a button, a
-trigger, or a stick pushed further than a resting stick ever sits. Buttons and triggers are taken at
-face value because they cannot drift; the sticks are held to a higher bar than the deadzone so a
-worn pad on a shelf can never take the game away from the one in somebody's hands.
+So the pad in charge is the pad being used. Every connected pad is held open; the first one found takes control at startup, since nobody is touching anything yet, and keeps it for as long as it is being used. Once it has been idle a couple of seconds, any other pad gets it by asking: a button, a trigger, or a stick pushed further than a resting stick ever sits. Buttons and triggers are taken at face value because they cannot drift; the sticks are held to a higher bar than the deadzone so a worn pad on a shelf can never take the game away from the one in somebody's hands.
 
-Handing a second pad to somebody else and having them press A is therefore all it takes to switch.
-That press only takes control; it does not also jump or click. The log names the pad it is listening
-to and how many it can see.
+Handing a second pad to somebody else and having them press A is therefore all it takes to switch. That press only takes control; it does not also jump or click. The log names the pad it is listening to and how many it can see.
 
 ## Layout
 
@@ -81,11 +72,7 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | Back | Player list |
 | D-pad | Pandorical keybinds 1-4 (down = slot 1, poopsmith's poop key) |
 
-**Reeling a fish** is the one place the left trigger is read as more than a button. The fishing
-fight (Minedew Fishing) is driven by right-clicks, one kick upward per click, and a mouse plays it by
-tapping at a rate. While a bobber is out, a tap of the trigger is still one click, and a hold clicks
-on its own: two a second at the lightest squeeze, eight fully pulled. Pull harder to rise, ease off to
-sink, let go to drop.
+**Reeling a fish** is the one place the left trigger is read as more than a button. The fishing fight (Minedew Fishing) is driven by right-clicks, one kick upward per click, and a mouse plays it by tapping at a rate. While a bobber is out, a tap of the trigger is still one click, and a hold clicks on its own: two a second at the lightest squeeze, eight fully pulled. Pull harder to rise, ease off to sink, let go to drop.
 
 ### In menus
 
@@ -102,35 +89,21 @@ sink, let go to drop.
 
 ## Changing the layout
 
-The world layout above is the default. **Options > Controls > Key Binds** has a controller column
-beside the keyboard one, and every row in it can take a pad control: vanilla's actions, other mods'
-keys, and Pandorical's pooled slots alike. A pad control can drive anything the game reads as a
-held or clicked key, so binding one to *Toggle Perspective* or *Hotbar Slot 3* simply works.
+The world layout above is the default. **Options > Controls > Key Binds** has a controller column beside the keyboard one, and every row in it can take a pad control: vanilla's actions, other mods' keys, and Pandorical's pooled slots alike. A pad control can drive anything the game reads as a held or clicked key, so binding one to *Toggle Perspective* or *Hotbar Slot 3* simply works.
 
-Click a row's controller button (with A, or the mouse) and press the control you want. **Start
-clears it**, the way Escape clears a key, and a click or a key press stops waiting without changing
-anything. Reset puts the row back to its defaults, pad and keyboard both, and Reset Keys does the
-same for every row. A control on two actions is marked the way a keyboard clash is, and both fire.
+Click a row's controller button (with A, or the mouse) and press the control you want. **Start clears it**, the way Escape clears a key, and a click or a key press stops waiting without changing anything. Reset puts the row back to its defaults, pad and keyboard both, and Reset Keys does the same for every row. A control on two actions is marked the way a keyboard clash is, and both fire.
 
-Hotbar stepping appears as two rows of its own under Inventory, *Previous Hotbar Slot* and *Next
-Hotbar Slot*, unbound on the keyboard until given a key.
+Hotbar stepping appears as two rows of its own under Inventory, *Previous Hotbar Slot* and *Next Hotbar Slot*, unbound on the keyboard until given a key.
 
-Some rows show `-`: screenshot, fullscreen, friends and the debug keys are read straight off the
-keyboard event, so no pad control can reach them.
+Some rows show `-`: screenshot, fullscreen, friends and the debug keys are read straight off the keyboard event, so no pad control can reach them.
 
-Fixed, and not in the list: the stick controls (move, look, sprint), Start as pause, and the whole
-menu layout. The menu layout is what gets you into this screen in the first place, so it is not
-something one wrong binding should be able to take away.
+Fixed, and not in the list: the stick controls (move, look, sprint), Start as pause, and the whole menu layout. The menu layout is what gets you into this screen in the first place, so it is not something one wrong binding should be able to take away.
 
-Changes are saved to `config/couch-controls/pad-binds.properties`, only where they differ from
-the defaults.
+Changes are saved to `config/couch-controls/pad-binds.properties`, only where they differ from the defaults.
 
 ## Typing
 
-Clicking into a text box with the pad (A on chat's input, an anvil's name, a book's page, a command
-block, the creative search) opens an on-screen keyboard; a sign opens it as soon as the sign is
-placed, and A anywhere on the sign that is not the Done button brings it back. It sits above the
-text when the text is low on the screen, as chat's is, and below it otherwise.
+Clicking into a text box with the pad (A on chat's input, an anvil's name, a book's page, a command block, the creative search) opens an on-screen keyboard; a sign opens it as soon as the sign is placed, and A anywhere on the sign that is not the Done button brings it back. It sits above the text when the text is low on the screen, as chat's is, and below it otherwise.
 
 | Control | Action |
 |---|---|
@@ -143,26 +116,19 @@ text when the text is low on the screen, as chat's is, and below it otherwise.
 | Start | Enter (sends chat; next line on a sign) |
 | East (B) | Close the keyboard, leaving the screen open |
 
-`?123` swaps in numbers and symbols. The keys go to the screen exactly as a keyboard's do, so what
-the text box accepts is up to the text box. Touching the real keyboard or mouse closes it.
+`?123` swaps in numbers and symbols. The keys go to the screen exactly as a keyboard's do, so what the text box accepts is up to the text box. Touching the real keyboard or mouse closes it.
 
 ## Rumble
 
-The pad shakes when you are hurt (harder the more it took, and a long one when it kills you), when
-a hit lands, when a block breaks, when something bites your line, and when an explosion goes off
-near you, fading with distance. The bite is vanilla's own bite flag, which Minedew Fishing sets too.
+The pad shakes when you are hurt (harder the more it took, and a long one when it kills you), when a hit lands, when a block breaks, when something bites your line, and when an explosion goes off near you, fading with distance. The bite is vanilla's own bite flag, which Minedew Fishing sets too.
 
-Only while the pad is the hands in use: a key or a mouse button hands the game back to the keyboard
-and the pad goes quiet until it is touched again, so a pad left charging on the shelf never buzzes.
+Only while the pad is the hands in use: a key or a mouse button hands the game back to the keyboard and the pad goes quiet until it is touched again, so a pad left charging on the shelf never buzzes.
 
-Rumble can be switched off and its strength set in the settings below; changing either gives a
-sample shake so it can be judged by hand.
+Rumble can be switched off and its strength set in the settings below; changing either gives a sample shake so it can be judged by hand.
 
 ## Settings
 
-On Couch Controls' page in Pandorical's mod menu, and in `config/couch-controls/settings.properties`,
-which works with or without Pandorical. The menu writes the file, so the two never disagree; the
-page needs a Pandorical recent enough to have client settings.
+On Couch Controls' page in Pandorical's mod menu, and in `config/couch-controls/settings.properties`, which works with or without Pandorical. The menu writes the file, so the two never disagree; the page needs a Pandorical recent enough to have client settings.
 
 | Setting | File key | Default | Range |
 |---|---|---|---|
@@ -174,10 +140,7 @@ page needs a Pandorical recent enough to have client settings.
 | Rumble | `rumble` | on | |
 | Rumble strength | `rumble_strength` | 100% | 10-100% |
 
-Each stick has its own deadzone, since sticks wear unevenly and the camera shows drift that walking
-hides. It is radial, and the stick past it is rescaled, so full push is still full speed whatever
-the deadzone. A worn stick that drifts wants it higher; a new one can go lower for finer aim. It stops at 40% because a pad waiting to take over needs a half push, and a
-resting stick must never reach that.
+Each stick has its own deadzone, since sticks wear unevenly and the camera shows drift that walking hides. It is radial, and the stick past it is rescaled, so full push is still full speed whatever the deadzone. A worn stick that drifts wants it higher; a new one can go lower for finer aim. It stops at 40% because a pad waiting to take over needs a half push, and a resting stick must never reach that.
 
 ## Known gaps
 
