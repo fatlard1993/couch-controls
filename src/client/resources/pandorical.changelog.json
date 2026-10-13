@@ -4,6 +4,9 @@
     "Client-side only. The server neither needs it nor knows about it."
   ],
   "versions": {
+		"1.2.3": [
+			"Flicking the stick forward twice in water swims, the way double-tapping forward does on the keys."
+		],
 		"1.2.2": [
 			"The on-screen keyboard deletes again, and its cursor keys move the cursor."
 		],

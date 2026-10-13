@@ -64,7 +64,8 @@ Positional names (SDL calls them SOUTH/EAST/WEST/NORTH, not A/B/X/Y), so this co
 | West (X) | Drop item |
 | North (Y) | Open inventory |
 | Shoulders | Previous / next hotbar slot |
-| Left stick all the way forward | Sprint (latches until the stick recentres; afloat in deep water, it holds through the surface and dives at the next dip) |
+| Left stick all the way forward | Sprint (latches until the stick recentres; not in water, where pushing forward wades rather than dives) |
+| Left stick flicked forward twice, in water | Swim fast, the pad's double-tap of forward: all the way forward, back toward centre, and all the way forward again within 350 ms. It lasts while the stick stays forward, and ends as a vanilla swim does: let go of forward, leave the water, or run out of food |
 | Left stick click | Sneak (a press toggles it when the Sneak option is set to Toggle) |
 | East (B) | Chat, with the pointer on the newest link: A clicks it, so a teleport or trade request is B then A |
 | Right stick click | Swap hands |

@@ -50,6 +50,13 @@ public final class WorldControls {
 	private static final float SPRINT_PUSH = 0.9f;
 	private static final float SPRINT_CONE = 0.7f;
 
+	/**
+	 * In water, two pushes to the sprint rim this close together, the stick back out of forward
+	 * between them, swim. Vanilla's double-tap of forward allows 7 ticks from tap to tap; a stick
+	 * travels farther than a key, so it gets the same 350 ms rather than less.
+	 */
+	private static final float FLICK_WINDOW_SECONDS = 0.35f;
+
 	private static final Map<KeyMapping, Integer> boundSlots = new IdentityHashMap<>();
 	/** The {@link PadBinds#revision} {@link #boundSlots} was built from. */
 	private static int boundRevision = -1;
@@ -73,6 +80,14 @@ public final class WorldControls {
 	private static boolean reelHeld;
 	private static float reelDue;
 	private static boolean sprintLatched;
+	/** The double-flick's swim: held while the stick stays forward, in water, with the food for it. */
+	private static boolean swimLatched;
+	/** Seconds since the first flick reached the rim, or negative when none is waiting for a second. */
+	private static float flickAge = -1f;
+	/** The waiting flick has come back out of forward, so the next push to the rim is a second one. */
+	private static boolean flickLetGo;
+	/** The stick was at the rim last frame; a flick is the frame it arrives. */
+	private static boolean atRim;
 	/** Vanilla's Sneak: Toggle. A press flips the key's own state through {@code ToggleKeyMapping}; the hold is not reported. */
 	private static boolean sneakToggles;
 	private static float steerPhase;
@@ -147,7 +162,7 @@ public final class WorldControls {
 		}
 
 		applyLook(pad, player, frameSeconds);
-		applyMovement(pad, player);
+		applyMovement(pad, player, frameSeconds);
 	}
 
 	/** Whether use reaches a rod: in the main hand, or in the offhand behind an empty main hand. */
@@ -198,9 +213,15 @@ public final class WorldControls {
 		player.turn(yaw / TURN_SCALE, pitch / TURN_SCALE);
 	}
 
-	private static void applyMovement(Gamepad pad, LocalPlayer player) {
+	private static void applyMovement(Gamepad pad, LocalPlayer player, float frameSeconds) {
 		float x = pad.leftX();
 		float y = pad.leftY();
+		float push = (float) Math.sqrt(x * x + y * y);
+		boolean rim = push >= SPRINT_PUSH && -y >= SPRINT_CONE * push;
+		boolean forward = y <= -DIGITAL_THRESHOLD;
+
+		applySwim(player, rim, forward, frameSeconds);
+		atRim = rim;
 
 		if (x == 0f && y == 0f) {
 			padMove = null;
@@ -217,19 +238,50 @@ public final class WorldControls {
 		// different things, and the stick only says the first.
 		//
 		// The sprint button still says the second, exactly as the keyboard does: forward to
-		// wade, sprint to swim. An existing latch is dropped on entry rather than carried in,
-		// so running off a bank does not take the dive with it.
+		// wade, sprint to swim. So does a double-flick (applySwim). An existing latch is dropped
+		// on entry rather than carried in, so running off a bank does not take the dive with it.
 		if (player.isInWater()) {
 			sprintLatched = false;
 			return;
 		}
 
-		float push = (float) Math.sqrt(x * x + y * y);
-		if (push >= SPRINT_PUSH && -y >= SPRINT_CONE * push) sprintLatched = true;
+		if (rim) sprintLatched = true;
 	}
 
 	/**
-	 * The boolean record the server is sent: the stick as directions, and the sprint latch.
+	 * The pad's double-tap of forward: in water, the stick to the rim, back out of forward, and to
+	 * the rim again inside {@link #FLICK_WINDOW_SECONDS}. The swim then lasts as vanilla's does
+	 * with the sprint key held: until forward is let go, the water is left, or the food runs out.
+	 * Dropping the latch on those is what ends it, because a sprint key still held would only
+	 * start the swim again.
+	 */
+	private static void applySwim(LocalPlayer player, boolean rim, boolean forward, float frameSeconds) {
+		boolean inWater = player.isInWater();
+		boolean fed = player.getFoodData().hasEnoughFood() || player.getAbilities().mayfly;
+		if (!inWater || !forward || !fed) swimLatched = false;
+		if (!inWater || swimLatched) {
+			flickAge = -1f;
+			return;
+		}
+
+		if (flickAge >= 0f) {
+			flickAge += frameSeconds;
+			if (flickAge > FLICK_WINDOW_SECONDS) flickAge = -1f;
+			else if (!forward) flickLetGo = true;
+		}
+		if (!rim || atRim) return;
+
+		if (flickAge >= 0f && flickLetGo) {
+			swimLatched = fed;
+			flickAge = -1f;
+		} else {
+			flickAge = 0f;
+			flickLetGo = false;
+		}
+	}
+
+	/**
+	 * The boolean record the server is sent: the stick as directions, and the sprint and swim latches.
 	 * Jump and sneak already arrive through their key mappings.
 	 */
 	public static Input mergeKeyPresses(Input keys) {
@@ -257,7 +309,7 @@ public final class WorldControls {
 			keys.right() || right,
 			keys.jump(),
 			keys.shift(),
-			keys.sprint() || sprintLatched);
+			keys.sprint() || sprintLatched || swimLatched);
 	}
 
 	private static boolean isSteeringBoat() {
@@ -315,6 +367,9 @@ public final class WorldControls {
 		active = false;
 		padMove = null;
 		sprintLatched = false;
+		swimLatched = false;
+		flickAge = -1f;
+		atRim = false;
 		steerPhase = 0f;
 		rodInHand = false;
 		reeling = false;

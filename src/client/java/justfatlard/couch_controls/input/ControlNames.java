@@ -101,6 +101,7 @@ public final class ControlNames implements Function<String, String> {
 			case "scroll_down" -> label(Binds.SCROLL_DOWN);
 			case "pause" -> label(Binds.PAUSE);
 			case "sprint" -> "left stick all the way forward";
+			case "swim" -> "left stick flicked forward twice";
 			case "move" -> "left stick";
 			case "look", "pointer" -> "right stick";
 			case "navigate" -> "D-pad";
