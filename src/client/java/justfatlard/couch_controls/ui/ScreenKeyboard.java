@@ -18,6 +18,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
+import org.lwjgl.sdl.SDLKeycode;
 
 import java.util.Collections;
 import java.util.List;
@@ -175,11 +176,11 @@ public final class ScreenKeyboard {
 		if (pad.justPressed(Binds.TYPE)) press(screen, page.get(row).get(column));
 		if (pad.justPressed(Binds.SPACE)) type(screen, " ");
 		if (pad.justPressed(Binds.SHIFT)) shifted = !shifted;
-		if (pad.justPressed(Binds.CURSOR_LEFT)) key(screen, InputConstants.KEY_LEFT);
-		if (pad.justPressed(Binds.CURSOR_RIGHT)) key(screen, InputConstants.KEY_RIGHT);
+		if (pad.justPressed(Binds.CURSOR_LEFT)) key(screen, InputConstants.KEY_LEFT, SDLKeycode.SDLK_LEFT);
+		if (pad.justPressed(Binds.CURSOR_RIGHT)) key(screen, InputConstants.KEY_RIGHT, SDLKeycode.SDLK_RIGHT);
 		repeatDelete(pad, screen, frameSeconds);
 		// Last: Enter in chat sends and closes the screen, and nothing should follow it there.
-		if (pad.justPressed(Binds.ENTER)) key(screen, InputConstants.KEY_RETURN);
+		if (pad.justPressed(Binds.ENTER)) key(screen, InputConstants.KEY_RETURN, SDLKeycode.SDLK_RETURN);
 		return true;
 	}
 
@@ -189,8 +190,8 @@ public final class ScreenKeyboard {
 			case SHIFT -> shifted = !shifted;
 			case PAGE -> turnPage();
 			case SPACE -> type(screen, " ");
-			case DELETE -> key(screen, InputConstants.KEY_BACKSPACE);
-			case ENTER -> key(screen, InputConstants.KEY_RETURN);
+			case DELETE -> key(screen, InputConstants.KEY_BACKSPACE, SDLKeycode.SDLK_BACKSPACE);
+			case ENTER -> key(screen, InputConstants.KEY_RETURN, SDLKeycode.SDLK_RETURN);
 		}
 	}
 
@@ -199,8 +200,13 @@ public final class ScreenKeyboard {
 		if (!text.isBlank()) shifted = false;
 	}
 
-	private static void key(Screen screen, int key) {
-		screen.keyPressed(new KeyEvent(key, 0, 0));
+	/**
+	 * A key press as the keyboard would send it, both halves of it: the scancode is where the key
+	 * is, which Enter and Escape are read by, and the keycode is what it means, which a text box's
+	 * editing keys are read by. A press with no keycode deletes nothing and moves nowhere.
+	 */
+	private static void key(Screen screen, int scancode, int keycode) {
+		screen.keyPressed(new KeyEvent(scancode, keycode, 0));
 	}
 
 	private static void turnPage() {
@@ -212,14 +218,14 @@ public final class ScreenKeyboard {
 	private static void repeatDelete(Gamepad pad, Screen screen, float frameSeconds) {
 		if (!pad.isDown(Binds.DELETE)) return;
 		if (pad.justPressed(Binds.DELETE)) {
-			key(screen, InputConstants.KEY_BACKSPACE);
+			key(screen, InputConstants.KEY_BACKSPACE, SDLKeycode.SDLK_BACKSPACE);
 			deleteCooldown = REPEAT_DELAY_SECONDS;
 			return;
 		}
 		deleteCooldown -= frameSeconds;
 		if (deleteCooldown > 0f) return;
 		deleteCooldown = DELETE_REPEAT_INTERVAL_SECONDS;
-		key(screen, InputConstants.KEY_BACKSPACE);
+		key(screen, InputConstants.KEY_BACKSPACE, SDLKeycode.SDLK_BACKSPACE);
 	}
 
 	private static void step(Gamepad pad, float frameSeconds) {

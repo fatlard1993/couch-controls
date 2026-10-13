@@ -4,6 +4,9 @@
     "Client-side only. The server neither needs it nor knows about it."
   ],
   "versions": {
+		"1.2.2": [
+			"The on-screen keyboard deletes again, and its cursor keys move the cursor."
+		],
     "1.2.1": [
       "The stick no longer starts a sprint in water, so crossing one does not put you face down.",
       "The sprint button still swims, the way the keyboard does."
