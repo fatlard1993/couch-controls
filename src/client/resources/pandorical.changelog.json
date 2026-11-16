@@ -4,6 +4,9 @@
     "Client-side only. The server neither needs it nor knows about it."
   ],
   "versions": {
+    "1.2.6": [
+      "Looking for newly plugged-in controllers no longer leaks a little memory every second."
+    ],
     "1.2.5": [
       "Drop changelog notes for changes nothing in the game shows."
     ],
