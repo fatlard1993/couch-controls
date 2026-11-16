@@ -4,6 +4,7 @@ import justfatlard.couch_controls.CouchControls;
 import justfatlard.couch_controls.CouchSettings;
 import org.lwjgl.sdl.SDLGamepad;
 import org.lwjgl.sdl.SDLInit;
+import org.lwjgl.sdl.SDLStdinc;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -131,12 +132,17 @@ public final class Gamepad {
 		IntBuffer ids = SDLGamepad.SDL_GetGamepads();
 		if (ids == null) return;
 
-		while (ids.hasRemaining()) {
-			int id = ids.get();
-			if (isOpen(id)) continue;
+		// Indexed reads: SDL_free takes the buffer's position as the address, so it has to stay at 0.
+		try {
+			for (int i = 0; i < ids.limit(); i++) {
+				int id = ids.get(i);
+				if (isOpen(id)) continue;
 
-			long opened = SDLGamepad.SDL_OpenGamepad(id);
-			if (opened != 0L) open.add(opened);
+				long opened = SDLGamepad.SDL_OpenGamepad(id);
+				if (opened != 0L) open.add(opened);
+			}
+		} finally {
+			SDLStdinc.SDL_free(ids);
 		}
 	}
 
