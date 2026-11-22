@@ -3,7 +3,7 @@
 	"id": "couch-controls",
 	"version": "${version}",
 	"name": "Couch Controls",
-	"description": "Native gamepad support: analog movement, stick camera, and menu navigation that snaps to real slots and buttons instead of pushing a pointer around.",
+	"description": "Native gamepad support, from movement and camera to menus",
 	"authors": [
 		"fatlard1993"
 	],
