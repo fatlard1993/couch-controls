@@ -4,6 +4,9 @@
     "Client-side only. The server neither needs it nor knows about it."
   ],
   "versions": {
+    "1.2.8": [
+      "The mods that do the same job are listed as conflicts, so the loader says so at startup, and the readme says why."
+    ],
     "1.2.7": [
       "Describes itself in one short line of what it adds."
     ],
