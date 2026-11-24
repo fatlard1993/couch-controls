@@ -116,6 +116,10 @@ Optional. With Pandorical installed (15.0.0 or later), the pad also steps throug
 
 Client-side only: put it in your client's `mods` folder. Servers do not need it and cannot tell it is there, so it works on any server, vanilla included, and in singleplayer.
 
+## Works with other mods
+
+Controlify brings gamepad support too, so with it installed both would answer the same controller; its manifest lists it as a conflict, so the loader says so at startup.
+
 ## Development
 
 Installing and building are in [DEVELOPMENT.md](DEVELOPMENT.md).

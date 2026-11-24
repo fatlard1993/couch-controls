@@ -35,6 +35,9 @@
 	"suggests": {
 		"pandorical": "*"
 	},
+	"conflicts": {
+		"controlify": "*"
+	},
 	"custom": {
 		"modmenu": {
 			"links": {
